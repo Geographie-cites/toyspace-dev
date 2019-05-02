@@ -27,6 +27,54 @@ finger_plan <- function(pol, id, cand, tabflows, idori, iddes, idflow){
   return(tabflows)
 }
 
+# Polycentrisation (high level function) ---- 
+
+polycentric_city <- function(pol, id, cand, tabflows, iddes, idflow){
+  tabflows$DES <- tabflows[[iddes]]
+  tabflows$FLOW <- tabflows[[idflow]]
+  dictionary <- relocate_one(pol = pol, id = id, cand = cand)
+  tabflows$DES <- plyr::mapvalues(x = tabflows$DES, from = dictionary$OLD, to = dictionary$NEW, warn_missing = FALSE)
+  return(tabflows)
+}
+
+# tod City (high level function) ---- 
+
+tod_city <- function(pol, id, cand, tabflows, iddes, idflow){
+  tabflows$ORI <- tabflows[[idori]]
+  tabflows$DES <- tabflows[[iddes]]
+  tabflows$FLOW <- tabflows[[idflow]]
+  dictionary <- relocate_one(pol = pol, id = id, cand = cand)
+  tabflows$ORI <- plyr::mapvalues(x = tabflows$ORI, from = dictionary$OLD, to = dictionary$NEW, warn_missing = FALSE)
+  tabflows$DES <- plyr::mapvalues(x = tabflows$DES, from = dictionary$OLD, to = dictionary$NEW, warn_missing = FALSE)
+  return(tabflows)
+}
+
+# CBDsation (high level function) ---- 
+
+cbd_city <- function(pol, id, candCBD, candSub, tabflows, idori, iddes, idflow){
+  tabflows$ORI <- tabflows[[idori]]
+  tabflows$DES <- tabflows[[iddes]]
+  tabflows$FLOW <- tabflows[[idflow]]
+  dictionaryCBD <- relocate_one(pol = pol, id = id, cand = candCBD)
+  dictionarySub <- relocate_one(pol = pol, id = id, cand = candSub)
+  tabflows$propFLOW <- tabflows$FLOW / max(tabflows$FLOW)
+  tabflowsBefore <- tabflows
+  tabflowsBefore$KEY <- paste(tabflowsBefore$ORI, tabflowsBefore$DES, sep = "_")
+  tabflows$ORI <- plyr::mapvalues(x = tabflows$ORI, from = dictionarySub$OLD, to = dictionarySub$NEW, warn_missing = FALSE)
+  tabflows$DES <- plyr::mapvalues(x = tabflows$DES, from = dictionaryCBD$OLD, to = dictionaryCBD$NEW, warn_missing = FALSE)
+  tabflows$KEY <- paste(tabflows$ORI, tabflows$DES, sep = "_")
+  left_join(tabflows, tabflowsBefore, by = c("KEY" = "KEY"))
+  tabflows$FLOW <- tabflows$FLOW * (tabflows$propFLOW)
+  tabflows$propFLOW <- NULL
+  tabflows$KEY <- NULL
+  tabIndex <- expand.grid(ORI = pol[[id]], DES = pol[[id]], stringsAsFactors = FALSE)
+  tabIndex <- left_join(x = tabIndex, y = tabflows, by = c("ORI", "DES"))
+  matrixdraft <- dcast(tabIndex, formula = ORI ~ DES, value.var = "FLOW")
+  matrix <- as.matrix(matrixdraft[,-1])
+  row.names(matrix) <- matrixdraft$ORI
+  
+  return(matrix)
+}
 
 
 
