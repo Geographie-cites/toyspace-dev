@@ -27,6 +27,54 @@ finger_plan <- function(pol, id, cand, tabflows, idori, iddes, idflow){
   return(tabflows)
 }
 
+# Polycentrisation (high level function) ---- 
+
+polycentric_city <- function(pol, id, cand, tabflows, iddes, idflow){
+  tabflows$DES <- tabflows[[iddes]]
+  tabflows$FLOW <- tabflows[[idflow]]
+  dictionary <- relocate_one(pol = pol, id = id, cand = cand)
+  tabflows$DES <- plyr::mapvalues(x = tabflows$DES, from = dictionary$OLD, to = dictionary$NEW, warn_missing = FALSE)
+  return(tabflows)
+}
+
+# tod City (high level function) ---- 
+
+tod_city <- function(pol, id, cand, tabflows, iddes, idflow){
+  tabflows$ORI <- tabflows[[idori]]
+  tabflows$DES <- tabflows[[iddes]]
+  tabflows$FLOW <- tabflows[[idflow]]
+  dictionary <- relocate_one(pol = pol, id = id, cand = cand)
+  tabflows$ORI <- plyr::mapvalues(x = tabflows$ORI, from = dictionary$OLD, to = dictionary$NEW, warn_missing = FALSE)
+  tabflows$DES <- plyr::mapvalues(x = tabflows$DES, from = dictionary$OLD, to = dictionary$NEW, warn_missing = FALSE)
+  return(tabflows)
+}
+
+# CBDsation (high level function) ---- 
+
+cbd_city <- function(pol, id, candCBD, candSub, tabflows, idori, iddes, idflow){
+  tabflows$ORI <- tabflows[[idori]]
+  tabflows$DES <- tabflows[[iddes]]
+  tabflows$FLOW <- tabflows[[idflow]]
+  dictionaryCBD <- relocate_one(pol = pol, id = id, cand = candCBD)
+  dictionarySub <- relocate_one(pol = pol, id = id, cand = candSub)
+  tabflows$propFLOW <- tabflows$FLOW / max(tabflows$FLOW)
+  tabflowsBefore <- tabflows
+  tabflowsBefore$KEY <- paste(tabflowsBefore$ORI, tabflowsBefore$DES, sep = "_")
+  tabflows$ORI <- plyr::mapvalues(x = tabflows$ORI, from = dictionarySub$OLD, to = dictionarySub$NEW, warn_missing = FALSE)
+  tabflows$DES <- plyr::mapvalues(x = tabflows$DES, from = dictionaryCBD$OLD, to = dictionaryCBD$NEW, warn_missing = FALSE)
+  tabflows$KEY <- paste(tabflows$ORI, tabflows$DES, sep = "_")
+  left_join(tabflows, tabflowsBefore, by = c("KEY" = "KEY"))
+  tabflows$FLOW <- tabflows$FLOW * (tabflows$propFLOW)
+  tabflows$propFLOW <- NULL
+  tabflows$KEY <- NULL
+  tabIndex <- expand.grid(ORI = pol[[id]], DES = pol[[id]], stringsAsFactors = FALSE)
+  tabIndex <- left_join(x = tabIndex, y = tabflows, by = c("ORI", "DES"))
+  matrixdraft <- dcast(tabIndex, formula = ORI ~ DES, value.var = "FLOW")
+  matrix <- as.matrix(matrixdraft[,-1])
+  row.names(matrix) <- matrixdraft$ORI
+  
+  return(matrix)
+}
 
 
 
@@ -53,6 +101,38 @@ excess_commuting <- function(matflows, matcost){
 
 ##### COMPUTE AND MAP INDICATORS #####
 
+# Map indicators ----
+
+mobIndic <- function (tabflow,                 # a df containing the flows 
+                      shapeSf,                 # an sf df containing the cities
+                      id                       # the cities id
+                      ){
+  
+  #Store Origins to Origins Flow Value into a df name "tabflowOriOri"
+  tabflowOriOri <- tabflow %>% filter_( "ORI == DES")
+  colnames(tabflowOriOri) <- c("ORI", "DES","OriOriFlow")
+  
+  #Store Origins Flow Value into a df name "tabflowOri"
+  tabflowOri <-  tabflow %>% filter_( "ORI != DES") %>% group_by(ORI) %>% summarise(OriFlow = sum(FLOW))
+  
+  #Store Destination Flow Value into a df name "tabflowDes"
+  tabflowDes <-  tabflow %>% filter_( "ORI != DES") %>% group_by(DES) %>% summarise(DesFlow = sum(FLOW))
+  tabflow <- left_join(x = tabflowOriOri, y = tabflowOri, by = c("ORI","ORI"))
+  tabflow <- left_join(x = tabflow, y = tabflowDes, by = c("DES","DES"))
+  tabflow$DES <- NULL
+  colnames(tabflow) <- c("idflow", "OriOriFlow","OriFlow", "DesFlow")
+  
+  #Building indicators
+  tabflow$Dependency <- tabflow$OriOriFlow / (tabflow$OriFlow + tabflow$OriOriFlow)
+  tabflow$AutoSuff <- tabflow$OriOriFlow / (tabflow$DesFlow + tabflow$OriOriFlow)
+  tabflow$Mobility <- (tabflow$DesFlow+tabflow$OriFlow) / (tabflow$OriFlow + tabflow$OriOriFlow)
+  tabflow$RelBal <- (tabflow$DesFlow-tabflow$OriFlow) / (tabflow$OriFlow + tabflow$DesFlow)
+  
+  shapeSf$idshp <- shapeSf[[id]]
+  shapeflow <- merge(x = shapeSf,y = tabflow, by.x="idshp", by.y = "idflow")
+  
+  return(shapeflow)
+}
 
 # dominant flows (Nystuen-Dacey) ----
 
@@ -61,60 +141,83 @@ nystuen_dacey <- function(
   poptab,     # table with population, flows summary (total at ori, des, intra) and core id
   idfield,    # CHAR, name of the id field in the population table (poptab)
   targetfield,# CHAR, name of the variable used for weighting
-  threspct    # threshold for defining max flow
+  threspct,    # threshold for defining max flow
+  shape,
+  shapeId
 )
 {
-  # prepare data
+  
+  #prepare data
   colnames(tabflows) <- c("ORI", "DES", "FLOW")
-  tabflows <- tabflows %>%
+  tabflows <- tabflows %>%    #on élimine les flux intra
     filter(ORI != DES)
   
-  poptab <- poptab %>%
+  poptab <- poptab %>%  #on crée un tableau propre ne comportant que l'origine, destination et la variable choisie pour pondérer (WGT)
     transmute(ORI = poptab[, idfield],
               DES = poptab[, idfield],
               WGT = poptab[, targetfield])
   
-  tabFlowsSum <- tabflows %>%
+  tabFlowsSum <- tabflows %>% #Tableau des sommes de flux à l'origine
     group_by(ORI) %>% 
     summarise(SUMFLOW = sum(FLOW, na.rm = TRUE))
   
-  tabFlowsMax <- tabflows %>%
+  tabFlowsMax <- tabflows %>% #tableau des flux maximums à l'origine et du pourcentage que représente ce flux par rapport au flux total de la commune
     group_by(ORI) %>% 
     arrange(desc(FLOW)) %>% 
     slice(1) %>% 
     left_join(y = tabFlowsSum, by = "ORI") %>% 
     mutate(PCTMAX = FLOW / SUMFLOW) %>% 
-    filter(PCTMAX > threspct)
+    filter(PCTMAX > threspct)  #ne conserve que les communes dont le flux est superieur au seuil rentré au préalable
   
-  tabFlowsAggr <- tabFlowsMax %>%   
+  tabFlowsAggr <- tabFlowsMax %>%   #Jointure des tableaux des flux maximum et de la variable de pondération (à l'origine et à la destination)
     left_join(x = ., y = poptab[, c("ORI", "WGT")], by = "ORI") %>% 
     left_join(x = ., y = poptab[, c("DES", "WGT")], by = "DES") 
   
   colnames(tabFlowsAggr)[6:7] <- c("WGTORI", "WGTDES")
   
-  tabFlowsAggr <- tabFlowsAggr %>% filter(WGTORI < WGTDES)
+  tabFlowsAggr <- tabFlowsAggr %>% filter(WGTORI < WGTDES) # ne garder que les flux dont la valeur de pondération à la destination est plus grande qu'a l'origine
   
-  graphFlows <- graph.data.frame(d = tabFlowsAggr[, c("ORI", "DES")], directed = TRUE)
-  V(graphFlows)$DEGIN <- degree(graphFlows, mode = "in")
+  graphFlows <- graph.data.frame(d = tabFlowsAggr[, c("ORI", "DES")], directed = TRUE) #Pour chaque commune on représente le lien du flux le plus élevé
+  V(graphFlows)$DEGIN <- degree(graphFlows, mode = "in")  #nombre de flux entrant par communes
   graphTab <- get.data.frame(x = graphFlows, what = "vertices")
   
-  degSorted <- sort(V(graphFlows)$DEGIN, decreasing = TRUE)
-  degSecond <- degSorted[2] + 1
+  degSorted <- sort(V(graphFlows)$DEGIN, decreasing = TRUE) #on trie du plus grand au plus petit
+  degSecond <- degSorted[2] + 1 #on dégage la seconde valeur la plus grande
   
-  tabflows <- tabflows %>% 
-    left_join(y = graphTab, by = c("ORI" = "name")) %>% 
-    left_join(y = graphTab, by = c("DES" = "name")) %>% 
+  tabflows <- tabflows %>% # Obtenir le statut des flux d'une commune à l'autre
+    left_join(y = graphTab, by = c("ORI" = "name")) %>%
+    left_join(y = graphTab, by = c("DES" = "name")) %>%
     mutate(STATUSORI = ifelse(is.na(DEGIN.x) | DEGIN.x == 0, 0, ifelse(DEGIN.x == 1 | DEGIN.x == 2, 1, ifelse(DEGIN.x < degSecond, 2, 3))),
            STATUSDES = ifelse(is.na(DEGIN.y) | DEGIN.y == 0, 0, ifelse(DEGIN.y == 1 | DEGIN.y == 2, 1, ifelse(DEGIN.y < degSecond, 2, 3))),
-           STATUS = paste(STATUSORI, STATUSDES, sep = "_")) %>% 
+           STATUS = paste(STATUSORI, STATUSDES, sep = "_")) %>%
     select(ORI, DES, STATUS)
   
-  graphTab <- graphTab %>% 
-    mutate(STATUS = ifelse(is.na(DEGIN) | DEGIN == 0, 0, 
-                           ifelse(DEGIN == 1 | DEGIN == 2, 1, 
+  graphTab <- graphTab %>% #Obtenir le statut de pole d'emploi des communes (petit 1, moyen 2, grand 3)
+    mutate(STATUS = ifelse(is.na(DEGIN) | DEGIN == 0, 0,
+                           ifelse(DEGIN == 1 | DEGIN == 2, 1,
                                   ifelse(DEGIN < degSecond, 2, 3))))
   
-  return(list(FLOWS = tabflows, PTS = graphTab))
+  #Get geometry for tabflows
+  spLinks <- getLinkLayer(x = shape, xid = shapeId, df = tabFlowsAggr[, c("ORI", "DES")], dfid = c("ORI", "DES"))
+  spLinks$KEY <- paste(spLinks$ORI, spLinks$DES, sep = "_")
+  tabflows$KEY <- paste(tabflows$ORI, tabflows$DES, sep = "_")
+  tabflows <- left_join(spLinks, tabflows[, c("KEY", "STATUS")], by = "KEY")
+  # tabflows <- left_join(spLinks, tabflows[,"KEY"], by = "KEY")
+  tabflows$KEY <- NULL
+  
+  #Get geometry for graphTab
+  shapeSf <- st_as_sf(shape)
+  shapeSfCent <- st_centroid(shapeSf)
+  proj4string <- as.character(shape@proj4string)
+  xy <- do.call(rbind, st_geometry(shapeSfCent))
+  shapeSfCent$lon <- project(xy=xy, proj4string, inv = TRUE)[,1]
+  shapeSfCent$lat <- project(xy=xy, proj4string, inv = TRUE)[,2]
+  graphTab <- transform(graphTab, name = as.numeric(name))
+  graphTab <- left_join(graphTab, shapeSfCent, by = c("name"= shapeId))
+  graphTab <- transform(graphTab, name = as.character(name))
+  graphTab <- left_join(graphTab, poptab, by = c("name"= "ORI"))
+  
+  return(list( PTS = graphTab, FLOWS = tabflows))
 }
 
 
@@ -137,7 +240,32 @@ relocate_one <- function(pol, id, cand){
   return(dictioTransfer)
 }
 
+# ROUTING (COMPUTE NETWORK DISTANCE BETWEEN CITIES) ----
 
-
+routing_machine <- function(road, #A street network represented as sf LINESTRING objects 
+                    pol,  #Polygons of cities
+                    idpol #Polygons identifier of cities
+                    ){
+  #Set weight to the same
+  road$wgt <- 0
+  
+  #Création du graph réseau
+  roadgraph <- weight_streetnet(x = road, wt_profile = 0, type_col = road$wgt)
+  
+  #Chopper les centroïdes
+  shapesfCent <- st_centroid(pol)
+  xy <- do.call(rbind, st_geometry(shapesfCent))
+  xy <- data.frame (lon = xy [, 1], lat = xy [, 2])
+  
+  #Création de la matrice de distance
+  matDist <- dodgr_dists(graph = roadgraph, 
+                         from = xy, 
+                         to = xy)
+  
+  row.names(matDist) <- shapesfCent[[idpol]]
+  colnames(matDist) <- shapesfCent[[idpol]]
+  
+  return(matDist)
+}
 
 
