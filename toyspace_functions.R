@@ -11,22 +11,10 @@
 
 
 
-# relocate (low level function) ----
 
-relocate_one <- function(pol, id, cand){
-  if(st_crs(pol)[[1]] != 2154) stop("Check the CRS (2154) and read the fucking manual")
-  pol$ID <- pol[[id]]
-  pol$KEY <- pol[[cand]]
-  centroPol <- st_centroid(pol)
-  oriRelocate <- centroPol
-  desRelocate <- centroPol %>% filter(KEY == 1)
-  matDist <- st_distance(oriRelocate, desRelocate)
-  idMin <- apply(matDist, 1, which.min)
-  dictioTransfer <- tibble(OLD = pol$ID, NEW = pol$ID[idMin])
-  return(dictioTransfer)
-}
+##### RELOCATE THE STOCKS (matrix margins) #####
 
-# finger plan configuration (high level function) ----
+# finger plan configuration ----
 
 finger_plan <- function(pol, id, cand, tabflows, idori, iddes, idflow){
   tabflows$ORI <- tabflows[[idori]]
@@ -38,6 +26,32 @@ finger_plan <- function(pol, id, cand, tabflows, idori, iddes, idflow){
   tabFlows <- tabflows %>% select(ORI, DES, FLOW)
   return(tabflows)
 }
+
+
+
+
+##### REWIRE THE FLOWS (matrix cells) #####
+
+# Excess commuting ----
+
+excess_commuting <- function(matflows, matcost){
+  if(nrow(matflows) == ncol(matflows) & nrow(matcost) == ncol(matcost) & nrow(matflows) == nrow(matcost)){
+    n = nrow(matflows)
+  } else {
+    stop("Check the matrix size (square matrices are required)")
+  }
+  
+  lpResult <- transport(a = apply(matflows, 1, sum), b = apply(matflows, 2, sum), costm = matcost) 
+  lpResult$from <- factor(x = lpResult$from, levels = 1:nrow(matflows), labels = 1:nrow(matflows))
+  lpResult$to <- factor(x = lpResult$to, levels = 1:nrow(matflows), labels = 1:nrow(matflows))
+  lpWide <- dcast(data = lpResult, formula = from ~ to, fill = 0, drop = FALSE, value.var = "mass")
+  matMin <- as.matrix(lpWide[, -1])
+  
+  return(matMin)
+}
+
+
+##### COMPUTE AND MAP INDICATORS #####
 
 
 # dominant flows (Nystuen-Dacey) ----
@@ -104,20 +118,26 @@ nystuen_dacey <- function(
 }
 
 
-# Excess commuting ----
 
-excess_commuting <- function(matflows, matcost){
-  if(nrow(matflows) == ncol(matflows) & nrow(matcost) == ncol(matcost) & nrow(matflows) == nrow(matcost)){
-    n = nrow(matflows)
-  } else {
-    stop("Check the matrix size (equal size square matrices")
-  }
-  
-  lpResult <- transport(a = apply(matflows, 1, sum), b = apply(matflows, 2, sum), costm = matcost) 
-  lpResult$from <- factor(x = lpResult$from, levels = 1:nrow(matflows), labels = 1:nrow(matflows))
-  lpResult$to <- factor(x = lpResult$to, levels = 1:nrow(matflows), labels = 1:nrow(matflows))
-  lpWide <- dcast(data = lpResult, formula = from ~ to, fill = 0, drop = FALSE, value.var = "mass")
-  matMin <- as.matrix(lpWide[, -1])
-  
-  return(matMin)
+##### LOW LEVEL FUNCTIONS #####
+
+
+# relocate (used to relocate people and jobs) ----
+
+relocate_one <- function(pol, id, cand){
+  if(st_crs(pol)[[1]] != 2154) stop("Check the CRS (2154) and read the fucking manual")
+  pol$ID <- pol[[id]]
+  pol$KEY <- pol[[cand]]
+  centroPol <- st_centroid(pol)
+  oriRelocate <- centroPol
+  desRelocate <- centroPol %>% filter(KEY == 1)
+  matDist <- st_distance(oriRelocate, desRelocate)
+  idMin <- apply(matDist, 1, which.min)
+  dictioTransfer <- tibble(OLD = pol$ID, NEW = pol$ID[idMin])
+  return(dictioTransfer)
 }
+
+
+
+
+
