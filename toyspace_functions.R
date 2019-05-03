@@ -1,13 +1,18 @@
 
 
-# pol <- communes
-# pol$fingerplan <- sample(x = c(0, 1), size = nrow(pol), replace = TRUE, prob = c(0.8, 0.2))
-# id <- "CODGEO"
-# cand <- "fingerplan"
-# tabflows <- tabFlows
-# idori <- "ORI"
-# iddes <- "DES"
-# idflow <- "FLOW"
+library(sf)
+library(reshape2)
+library(tidyverse)
+
+pol <- readRDS("data/pomacom.Rds")
+pol$fingerplan <- sample(x = c(0, 1), size = nrow(pol), replace = TRUE, prob = c(0.8, 0.2))
+pol$cbd <- ifelse(substr(pol$CODGEO, 1, 2) == "75", 1, 0)
+id <- "CODGEO"
+cand <- "cbd"
+tabflows <- readRDS("data/tabflows.Rds")
+idori <- "ORI"
+iddes <- "DES"
+idflow <- "FLOW"
 
 
 
@@ -27,7 +32,11 @@ finger_plan <- function(pol, id, cand, tabflows, idori, iddes, idflow){
   return(tabflows)
 }
 
+<<<<<<< HEAD
 # Polycentrisation (high level function) ---- 
+=======
+# Polycentrisation ---- 
+>>>>>>> 45338b75319a800dd164d42c36e93dee39707fbf
 
 polycentric_city <- function(pol, id, cand, tabflows, iddes, idflow){
   tabflows$DES <- tabflows[[iddes]]
@@ -37,7 +46,11 @@ polycentric_city <- function(pol, id, cand, tabflows, iddes, idflow){
   return(tabflows)
 }
 
+<<<<<<< HEAD
 # tod City (high level function) ---- 
+=======
+# TOD city ---- 
+>>>>>>> 45338b75319a800dd164d42c36e93dee39707fbf
 
 tod_city <- function(pol, id, cand, tabflows, iddes, idflow){
   tabflows$ORI <- tabflows[[idori]]
@@ -49,6 +62,7 @@ tod_city <- function(pol, id, cand, tabflows, iddes, idflow){
   return(tabflows)
 }
 
+<<<<<<< HEAD
 # CBDsation (high level function) ---- 
 
 cbd_city <- function(pol, id, candCBD, candSub, tabflows, idori, iddes, idflow){
@@ -74,6 +88,77 @@ cbd_city <- function(pol, id, candCBD, candSub, tabflows, idori, iddes, idflow){
   row.names(matrix) <- matrixdraft$ORI
   
   return(matrix)
+=======
+# CBDsation ---- 
+
+cbd_city <- function(pol, id, cand, tabflows, idori, iddes, idflow){
+  tabflows$ORI <- tabflows[[idori]]
+  tabflows$DES <- tabflows[[iddes]]
+  tabflows$FLOW <- tabflows[[idflow]]
+  pol <- pol %>% st_set_geometry(NULL)
+  pol$ID <- pol[[id]]
+  pol$CAND <- pol[[cand]]
+  
+  # compute proportion of jobs and proportion of labor force
+  totDesIn <- tabflows %>% 
+    left_join(pol[, c("ID", "CAND")], by = c("DES" = "ID")) %>% 
+    filter(CAND == 1) %>% 
+    group_by(DES) %>% 
+    summarise(FLOW = sum(FLOW)) %>% 
+    mutate(PCTFLOW = FLOW / sum(FLOW)) %>% 
+    ungroup()
+  
+  totOriOut <- tabflows %>% 
+    left_join(pol[, c("ID", "CAND")], by = c("ORI" = "ID")) %>% 
+    filter(CAND != 1) %>% 
+    group_by(ORI) %>% 
+    summarise(FLOW = sum(FLOW)) %>% 
+    mutate(PCTFLOW = FLOW / sum(FLOW)) %>% 
+    ungroup()
+  
+  # re-affect jobs
+  tabFlowsSub <- tabflows %>% 
+    left_join(pol[, c("ID", "CAND")], by = c("DES" = "ID")) %>% 
+    filter(CAND != 1)
+  matPctIn <- sapply(tabFlowsSub$FLOW, function(x) x * totDesIn$PCTFLOW) %>% t()
+  row.names(matPctIn) <- paste(tabFlowsSub$ORI, tabFlowsSub$MODE, sep = "_")
+  colnames(matPctIn) <- totDesIn$DES
+  tabFlowsIn <- melt(matPctIn, varnames = c("ORIMODE", "DES"), value.name = "FLOW", as.is = TRUE) %>% 
+    mutate(ORI = substr(ORIMODE, 1, 5), MODE = substr(ORIMODE, 7, 8)) %>% 
+    group_by(ORI, DES, MODE) %>% 
+    summarise(FLOW = sum(FLOW)) %>% 
+    ungroup()
+  
+  tabFlowsCand <- tabflows %>% 
+    left_join(pol[, c("ID", "CAND")], by = c("DES" = "ID")) %>% 
+    filter(CAND == 1) %>% 
+    transmute(ORI = ORI, DES = DES, MODE = substr(MODE, 1, 2), FLOW = FLOW)
+  
+  jobsRelocated <- rbind(tabFlowsIn, tabFlowsCand)
+  
+  # re-affect labor force
+  tabFlowsCbd <- jobsRelocated %>% 
+    left_join(pol[, c("ID", "CAND")], by = c("ORI" = "ID")) %>% 
+    filter(CAND == 1)
+  matPctOut <- sapply(tabFlowsCbd$FLOW, function(x) x * totOriOut$PCTFLOW) %>% t()
+
+  row.names(matPctOut) <- paste(tabFlowsCbd$DES, tabFlowsCbd$MODE, sep = "_")
+  colnames(matPctOut) <- totOriOut$ORI
+  tabFlowsOut <- melt(matPctOut, varnames = c("DESMODE", "ORI"), value.name = "FLOW", as.is = TRUE) %>% 
+    mutate(DES = substr(DESMODE, 1, 5), MODE = substr(DESMODE, 7, 8)) %>% 
+    group_by(ORI, DES, MODE) %>% 
+    summarise(FLOW = sum(FLOW)) %>% 
+    ungroup()
+
+  tabFlowsNocbd <- jobsRelocated %>% 
+    left_join(pol[, c("ID", "CAND")], by = c("ORI" = "ID")) %>% 
+    filter(CAND != 1) %>% 
+    transmute(ORI = ORI, DES = DES, MODE = substr(MODE, 1, 2), FLOW = FLOW)
+  
+  allRelocated <- rbind(tabFlowsOut, tabFlowsNocbd)
+
+  return(allRelocated)
+>>>>>>> 45338b75319a800dd164d42c36e93dee39707fbf
 }
 
 
