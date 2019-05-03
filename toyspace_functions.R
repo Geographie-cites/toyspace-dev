@@ -1,5 +1,3 @@
-
-
 library(sf)
 library(reshape2)
 library(tidyverse)
@@ -32,11 +30,7 @@ finger_plan <- function(pol, id, cand, tabflows, idori, iddes, idflow){
   return(tabflows)
 }
 
-<<<<<<< HEAD
-# Polycentrisation (high level function) ---- 
-=======
 # Polycentrisation ---- 
->>>>>>> 45338b75319a800dd164d42c36e93dee39707fbf
 
 polycentric_city <- function(pol, id, cand, tabflows, iddes, idflow){
   tabflows$DES <- tabflows[[iddes]]
@@ -46,11 +40,7 @@ polycentric_city <- function(pol, id, cand, tabflows, iddes, idflow){
   return(tabflows)
 }
 
-<<<<<<< HEAD
-# tod City (high level function) ---- 
-=======
 # TOD city ---- 
->>>>>>> 45338b75319a800dd164d42c36e93dee39707fbf
 
 tod_city <- function(pol, id, cand, tabflows, iddes, idflow){
   tabflows$ORI <- tabflows[[idori]]
@@ -62,33 +52,6 @@ tod_city <- function(pol, id, cand, tabflows, iddes, idflow){
   return(tabflows)
 }
 
-<<<<<<< HEAD
-# CBDsation (high level function) ---- 
-
-cbd_city <- function(pol, id, candCBD, candSub, tabflows, idori, iddes, idflow){
-  tabflows$ORI <- tabflows[[idori]]
-  tabflows$DES <- tabflows[[iddes]]
-  tabflows$FLOW <- tabflows[[idflow]]
-  dictionaryCBD <- relocate_one(pol = pol, id = id, cand = candCBD)
-  dictionarySub <- relocate_one(pol = pol, id = id, cand = candSub)
-  tabflows$propFLOW <- tabflows$FLOW / max(tabflows$FLOW)
-  tabflowsBefore <- tabflows
-  tabflowsBefore$KEY <- paste(tabflowsBefore$ORI, tabflowsBefore$DES, sep = "_")
-  tabflows$ORI <- plyr::mapvalues(x = tabflows$ORI, from = dictionarySub$OLD, to = dictionarySub$NEW, warn_missing = FALSE)
-  tabflows$DES <- plyr::mapvalues(x = tabflows$DES, from = dictionaryCBD$OLD, to = dictionaryCBD$NEW, warn_missing = FALSE)
-  tabflows$KEY <- paste(tabflows$ORI, tabflows$DES, sep = "_")
-  left_join(tabflows, tabflowsBefore, by = c("KEY" = "KEY"))
-  tabflows$FLOW <- tabflows$FLOW * (tabflows$propFLOW)
-  tabflows$propFLOW <- NULL
-  tabflows$KEY <- NULL
-  tabIndex <- expand.grid(ORI = pol[[id]], DES = pol[[id]], stringsAsFactors = FALSE)
-  tabIndex <- left_join(x = tabIndex, y = tabflows, by = c("ORI", "DES"))
-  matrixdraft <- dcast(tabIndex, formula = ORI ~ DES, value.var = "FLOW")
-  matrix <- as.matrix(matrixdraft[,-1])
-  row.names(matrix) <- matrixdraft$ORI
-  
-  return(matrix)
-=======
 # CBDsation ---- 
 
 cbd_city <- function(pol, id, cand, tabflows, idori, iddes, idflow){
@@ -141,7 +104,7 @@ cbd_city <- function(pol, id, cand, tabflows, idori, iddes, idflow){
     left_join(pol[, c("ID", "CAND")], by = c("ORI" = "ID")) %>% 
     filter(CAND == 1)
   matPctOut <- sapply(tabFlowsCbd$FLOW, function(x) x * totOriOut$PCTFLOW) %>% t()
-
+  
   row.names(matPctOut) <- paste(tabFlowsCbd$DES, tabFlowsCbd$MODE, sep = "_")
   colnames(matPctOut) <- totOriOut$ORI
   tabFlowsOut <- melt(matPctOut, varnames = c("DESMODE", "ORI"), value.name = "FLOW", as.is = TRUE) %>% 
@@ -149,16 +112,15 @@ cbd_city <- function(pol, id, cand, tabflows, idori, iddes, idflow){
     group_by(ORI, DES, MODE) %>% 
     summarise(FLOW = sum(FLOW)) %>% 
     ungroup()
-
+  
   tabFlowsNocbd <- jobsRelocated %>% 
     left_join(pol[, c("ID", "CAND")], by = c("ORI" = "ID")) %>% 
     filter(CAND != 1) %>% 
     transmute(ORI = ORI, DES = DES, MODE = substr(MODE, 1, 2), FLOW = FLOW)
   
   allRelocated <- rbind(tabFlowsOut, tabFlowsNocbd)
-
+  
   return(allRelocated)
->>>>>>> 45338b75319a800dd164d42c36e93dee39707fbf
 }
 
 
@@ -186,12 +148,13 @@ excess_commuting <- function(matflows, matcost){
 
 ##### COMPUTE AND MAP INDICATORS #####
 
+
 # Map indicators ----
 
 mobIndic <- function (tabflow,                 # a df containing the flows 
                       shapeSf,                 # an sf df containing the cities
                       id                       # the cities id
-                      ){
+){
   
   #Store Origins to Origins Flow Value into a df name "tabflowOriOri"
   tabflowOriOri <- tabflow %>% filter_( "ORI == DES")
@@ -218,6 +181,8 @@ mobIndic <- function (tabflow,                 # a df containing the flows
   
   return(shapeflow)
 }
+
+
 
 # dominant flows (Nystuen-Dacey) ----
 
@@ -305,32 +270,12 @@ nystuen_dacey <- function(
   return(list( PTS = graphTab, FLOWS = tabflows))
 }
 
-
-
-##### LOW LEVEL FUNCTIONS #####
-
-
-# relocate (used to relocate people and jobs) ----
-
-relocate_one <- function(pol, id, cand){
-  if(st_crs(pol)[[1]] != 2154) stop("Check the CRS (2154) and read the fucking manual")
-  pol$ID <- pol[[id]]
-  pol$KEY <- pol[[cand]]
-  centroPol <- st_centroid(pol)
-  oriRelocate <- centroPol
-  desRelocate <- centroPol %>% filter(KEY == 1)
-  matDist <- st_distance(oriRelocate, desRelocate)
-  idMin <- apply(matDist, 1, which.min)
-  dictioTransfer <- tibble(OLD = pol$ID, NEW = pol$ID[idMin])
-  return(dictioTransfer)
-}
-
 # ROUTING (COMPUTE NETWORK DISTANCE BETWEEN CITIES) ----
 
 routing_machine <- function(road, #A street network represented as sf LINESTRING objects 
-                    pol,  #Polygons of cities
-                    idpol #Polygons identifier of cities
-                    ){
+                            pol,  #Polygons of cities
+                            idpol #Polygons identifier of cities
+){
   #Set weight to the same
   road$wgt <- 0
   
@@ -354,3 +299,22 @@ routing_machine <- function(road, #A street network represented as sf LINESTRING
 }
 
 
+
+
+##### LOW LEVEL FUNCTIONS #####
+
+
+# relocate (used to relocate people and jobs) ----
+
+relocate_one <- function(pol, id, cand){
+  if(st_crs(pol)[[1]] != 2154) stop("Check the CRS (2154) and read the fucking manual")
+  pol$ID <- pol[[id]]
+  pol$KEY <- pol[[cand]]
+  centroPol <- st_centroid(pol)
+  oriRelocate <- centroPol
+  desRelocate <- centroPol %>% filter(KEY == 1)
+  matDist <- st_distance(oriRelocate, desRelocate)
+  idMin <- apply(matDist, 1, which.min)
+  dictioTransfer <- tibble(OLD = pol$ID, NEW = pol$ID[idMin])
+  return(dictioTransfer)
+}
