@@ -1,23 +1,50 @@
-library(sf)
-library(reshape2)
-library(tidyverse)
-
-pol <- readRDS("data/pomacom.Rds")
-pol$fingerplan <- sample(x = c(0, 1), size = nrow(pol), replace = TRUE, prob = c(0.8, 0.2))
-pol$cbd <- ifelse(substr(pol$CODGEO, 1, 2) == "75", 1, 0)
-id <- "CODGEO"
-cand <- "cbd"
-tabflows <- readRDS("data/tabflows.Rds")
-idori <- "ORI"
-iddes <- "DES"
-idflow <- "FLOW"
-
-
-
 
 ##### RELOCATE THE STOCKS (matrix margins) #####
 
 # finger plan configuration ----
+
+#' DF transform to finger plan urban model
+#'
+#' this function allows you to change the origins and destination of flows 
+#' stored into a dataframe to simulate a finger-plan urban model. Cities containing 
+#' railroad station are designed as candidate and flows are moved from non-candidate 
+#' cities to the nearest candidate cities (using osm network)
+#'
+#' @param pol An sf object of the cities
+#' @param id A character string of the column containing the id of the pol object
+#' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object
+#' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
+#' @param idori A character string giving the origin field name in tabflows
+#' @param iddes A character string giving the destination field name in tabflows
+#' @param idflow A character string giving the flow field name in tabflows
+#' 
+#' @return A data.frame of flows as tabflows with origins and destinations changed
+#' 
+#' @examples 
+#' # Import data
+#' 
+#' id <- "CODGEO"
+#' cand <- "fingerplan"
+#' data(pol)
+#' data(tabflows)
+#' idori <- "ORI"
+#' iddes <- "DES"
+#' idflow <- "FLOW"
+#' 
+#' fg_flows <- finger_plan (
+#' pol = pol, 
+#' id = id, 
+#' cand = cand, 
+#' tabflows = tabFlows,
+#' idori = idori,
+#' iddes = iddes,
+#' idflow = idflow)
+#' 
+#' fg_flows[1:10,]
+#'
+#' @export
+#'
+
 
 finger_plan <- function(pol, id, cand, tabflows, idori, iddes, idflow){
   tabflows$ORI <- tabflows[[idori]]
@@ -32,6 +59,47 @@ finger_plan <- function(pol, id, cand, tabflows, idori, iddes, idflow){
 
 # Polycentrisation ---- 
 
+#' DF transform to polycentric urban model
+#'
+#' this function allows you to change the origins and destination of flows 
+#' stored into a dataframe to simulate a polycentric urban model. Cities considered as employment 
+#' pole and containing railroad station are designed as candidate and flows are moved 
+#' from non-candidate cities to the nearest candidate cities (using osm network)
+#'
+#' @param pol An sf object of the cities
+#' @param id A character string of the column containing the id of the pol object
+#' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object
+#' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
+#' @param iddes A character string giving the destination field name in tabflows
+#' @param idflow A character string giving the flow field name in tabflows
+#' 
+#' @return A data.frame of flows as tabflows with origins and destinations changed
+#' 
+#' @examples 
+#' # Import data
+#' 
+#' id <- "CODGEO"
+#' cand <- "polycentric"
+#' data(pol)
+#' data(tabflows)
+#' idori <- "ORI"
+#' iddes <- "DES"
+#' idflow <- "FLOW"
+#' 
+#' poly_flows <- polycentric_city (
+#' pol = pol, 
+#' id = id, 
+#' cand = cand, 
+#' tabflows = tabFlows,
+#' idori = idori,
+#' iddes = iddes,
+#' idflow = idflow)
+#' 
+#' poly_flows[1:10,]
+#'
+#' @export
+#'
+
 polycentric_city <- function(pol, id, cand, tabflows, iddes, idflow){
   tabflows$DES <- tabflows[[iddes]]
   tabflows$FLOW <- tabflows[[idflow]]
@@ -41,6 +109,48 @@ polycentric_city <- function(pol, id, cand, tabflows, iddes, idflow){
 }
 
 # TOD city ---- 
+
+#' DF transform to TOD urban model
+#'
+#' this function allows you to change the origins and destination of flows 
+#' stored into a dataframe to simulate a transport oriented developpement urban model. Cities considered as employment 
+#' pole and containing railroad station are designed as candidate and flows are moved 
+#' from non-candidate cities to the nearest candidate cities (using osm network)
+#'
+#' @param pol An sf object of the cities
+#' @param id A character string of the column containing the id of the pol object
+#' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object
+#' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
+#' @param idori A character string giving the origin field name in tabflows
+#' @param iddes A character string giving the destination field name in tabflows
+#' @param idflow A character string giving the flow field name in tabflows
+#' 
+#' @return A data.frame of flows as tabflows with origins and destinations changed
+#' 
+#' @examples 
+#' # Import data
+#' 
+#' id <- "CODGEO"
+#' cand <- "tod"
+#' data(pol)
+#' data(tabflows)
+#' idori <- "ORI"
+#' iddes <- "DES"
+#' idflow <- "FLOW"
+#' 
+#' tod_flows <- tod_city (
+#' pol = pol, 
+#' id = id, 
+#' cand = cand, 
+#' tabflows = tabFlows,
+#' idori = idori,
+#' iddes = iddes,
+#' idflow = idflow)
+#' 
+#' tod_flows[1:10,]
+#'
+#' @export
+#'
 
 tod_city <- function(pol, id, cand, tabflows, iddes, idflow){
   tabflows$ORI <- tabflows[[idori]]
@@ -53,6 +163,48 @@ tod_city <- function(pol, id, cand, tabflows, iddes, idflow){
 }
 
 # CBDsation ---- 
+
+#' DF transform to CBD urban model
+#'
+#' this function allows you to change the origins and destination of flows 
+#' stored into a dataframe to simulate a Central Business District urban model. City considered as
+#' the main city of the region is designed as candidate and flows are moved 
+#' from non-candidate cities to the candidate city
+#'
+#' @param pol An sf object of the cities
+#' @param id A character string of the column containing the id of the pol object
+#' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object
+#' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
+#' @param idori A character string giving the origin field name in tabflows
+#' @param iddes A character string giving the destination field name in tabflows
+#' @param idflow A character string giving the flow field name in tabflows
+#' 
+#' @return A data.frame of flows as tabflows with origins and destinations changed
+#' 
+#' @examples 
+#' # Import data
+#' 
+#' id <- "CODGEO"
+#' cand <- "cbd"
+#' data(pol)
+#' data(tabflows)
+#' idori <- "ORI"
+#' iddes <- "DES"
+#' idflow <- "FLOW"
+#' 
+#' cbd_flows <- cbd_city (
+#' pol = pol, 
+#' id = id, 
+#' cand = cand, 
+#' tabflows = tabFlows,
+#' idori = idori,
+#' iddes = iddes,
+#' idflow = idflow)
+#' 
+#' cbd_flows[1:10,]
+#'
+#' @export
+#'
 
 cbd_city <- function(pol, id, cand, tabflows, idori, iddes, idflow){
   tabflows$ORI <- tabflows[[idori]]
