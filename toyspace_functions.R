@@ -144,6 +144,69 @@ excess_commuting <- function(matflows, matcost){
 }
 
 
+# Bind partial minimal matrices ----
+
+bind_excess <- function(tabindiv, matcost, idspat, varori, vardes, varwgt, variable, modal){
+  matToFill <- matrix(data = rep(0, times = length(matcost)), nrow = nrow(matcost), ncol = ncol(matcost))
+  for(i in 1:length(modal)){
+    matFlowsPart <- prepare_matflows(tabindiv = tabindiv, 
+                                  idspat = idspat, 
+                                  varori = varori, 
+                                  vardes = vardes, 
+                                  varwgt = varwgt,
+                                  variable = variable,
+                                  label = modal[i])
+    matFlowsPartMin <- excess_commuting(matflows = matFlowsPart, matcost = matcost)
+    matToFill <- matToFill + matFlowsPartMin
+  }
+  row.names(matToFill) <- colnames(matToFill) <- colnames(matFlowsPartMin)
+  return(matToFill)
+}
+
+
+
+##### COMPUTE STEWART POTENTIALS #####
+
+
+# Compute raw stewart raster ----
+
+stewart_raw <- function(tabflows, ref, selexpr = NULL, spatunits, res, span, mask){
+  stocks <- stock_flows(tabflows = tabflows, ref = ref, selexpr = selexpr)
+  # spatUnits <- AttribJoin(df = as.data.frame(stocks), spdf = spatunits, df.field = "ID", spdf.field = "CODGEO") 
+  resGrid <- CreateGrid(w = spatUnits, resolution = res)
+  matDist <- CreateDistMatrix(knownpts = spatUnits, unknownpts = resGrid, bypassctrl = TRUE)
+  vecStewart <- stewart(knownpts = spatUnits, unknownpts = resGrid, matdist = matDist, 
+                        varname = "N", span = span, mask = mask, resolution = res, 
+                        typefct = "exponential", beta = 3)
+  rasStewart <- rasterStewart(x = vecStewart, mask = mask)
+  return(rasStewart)
+}
+
+
+
+# Compute difference between 2 stewart rasters (DES - ORI) ----
+
+StewartDif <- function(tabflows, selexpr = NULL, spatunits, res, span, mask){
+  stocksOri <- stock_flows(tabflows = tabflows, ref = "ORI", selexpr = selexpr)
+  stocksDes <- stock_flows(tabflows = tabflows, ref = "DES", selexpr = selexpr)
+  stocksOriDes <- full_join(stocksOri, stocksDes, by = "ID") %>% rename(NORI = N.x, NDES = N.y)
+  # spatUnits <- AttribJoin(df = as.data.frame(stocksOriDes), spdf = spatunits, df.field = "ID", spdf.field = "CODGEO") 
+  resGrid <- CreateGrid(w = spatUnits, resolution = res)
+  matDist <- CreateDistMatrix(knownpts = spatUnits, unknownpts = resGrid, bypassctrl = TRUE)
+  vecStewartOri <- stewart(knownpts = spatUnits, unknownpts = resGrid, matdist = matDist, 
+                           varname = "NORI", span = span, mask = mask, resolution = res, 
+                           typefct = "exponential", beta = 3)
+  vecStewartDes <- stewart(knownpts = spatUnits, unknownpts = resGrid, matdist = matDist, 
+                           varname = "NDES", span = span, mask = mask, resolution = res, 
+                           typefct = "exponential", beta = 3)
+  rasStewartOri <- rasterStewart(x = vecStewartOri, mask = mask)
+  rasStewartDes <- rasterStewart(x = vecStewartDes, mask = mask)
+  rasDif <- rasStewartDes - rasStewartOri
+  return(rasDif)
+}
+
+
+
 ##### COMPUTE AND MAP INDICATORS #####
 
 
@@ -300,6 +363,79 @@ routing_machine <- function(road, #A street network represented as sf LINESTRING
 
 
 ##### LOW LEVEL FUNCTIONS #####
+
+
+
+# Compute totals by origin or destination ----
+
+stock_flows <- function(tabflows, ref, selexpr){
+  if(is.null(selexpr)){
+    tabFlows <- tabflows %>% select_(ref, "IPONDI")
+    colnames(tabFlows) <- c("ID", "WGT")
+  } else {
+    tabFlows <- tabflows %>% filter_(selexpr) %>% select_(ref, "IPONDI")
+    colnames(tabFlows) <- c("ID", "WGT")
+  }
+  
+  aggrTab <- tabFlows %>% group_by(ID) %>% summarise(N = sum(WGT))
+  return(aggrTab)
+}
+
+
+# Prepare OD matrix wide matrix from the table of individuals -----
+
+prepare_matflows <- function(tabindiv, idspat, varori, vardes, varwgt = NULL, variable = NULL, label = NULL){
+  tabflows <- create_tabflows(tabindiv = tabindiv, varori = varori, vardes = vardes, varwgt = varwgt, variable = variable, label = label)
+  matFlows <- cast_tabflows(tabflows = tabflows, idspat = idspat)
+  matFlows <- round(matFlows, digits = 0)
+  mode(matFlows) <- "integer"
+  return(matFlows)
+}
+
+
+# Create OD matrix (long table) ----
+
+create_tabflows <- function(tabindiv, varori, vardes, varwgt = NULL, variable = NULL, label = NULL){
+  # rename variables
+  tabindiv$ORI <- tabindiv[[varori]]
+  tabindiv$DES <- tabindiv[[vardes]]
+  
+  # get weights
+  if(!is.null(varwgt)){
+    tabindiv$WGT <- tabindiv[[varwgt]]
+  } else {
+    tabindiv$WGT <- 1
+  }
+  
+  # extract selection
+  if(!is.null(variable) & !is.null(label)){
+    tabindiv <- tabindiv[tabindiv[, variable] == label, ]
+  }
+  
+  # group by origin and destination
+  tabFlows <- tabindiv %>% 
+    group_by(ORI, DES) %>% 
+    summarise(VALUE = sum(WGT)) %>% 
+    ungroup()
+  
+  return(tabFlows)
+}
+
+# Cast OD long table into square matrix ----
+
+cast_tabflows <- function(tabflows, idspat){
+  tabIndex <- expand.grid(ORI = idspat,
+                          DES = idspat,
+                          stringsAsFactors = FALSE)
+  
+  print("Warning! Columns interpretation: 1-ORI, 2-DES, 3-VALUE")
+  colnames(tabflows)[1:3] <- c("ORI", "DES", "VALUE")
+  tabIndex <- left_join(x = tabIndex, y = tabflows, by = c("ORI", "DES"))
+  infoFlowsWide <- dcast(tabIndex, formula = ORI ~ DES, value.var = "VALUE", fill = 0, drop = FALSE)
+  matFlows <- as.matrix(infoFlowsWide[, -1])
+  row.names(matFlows) <- colnames(matFlows)
+  return(matFlows)
+}
 
 
 # relocate (used to relocate people and jobs) ----
