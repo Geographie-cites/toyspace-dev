@@ -123,8 +123,6 @@ cbd_city <- function(pol, id, cand, tabflows, idori, iddes, idflow){
   return(allRelocated)
 }
 
-
-
 ##### REWIRE THE FLOWS (matrix cells) #####
 
 # Excess commuting ----
