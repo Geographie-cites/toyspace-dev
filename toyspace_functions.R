@@ -1,23 +1,48 @@
-library(sf)
-library(reshape2)
-library(tidyverse)
-
-pol <- readRDS("data/pomacom.Rds")
-pol$fingerplan <- sample(x = c(0, 1), size = nrow(pol), replace = TRUE, prob = c(0.8, 0.2))
-pol$cbd <- ifelse(substr(pol$CODGEO, 1, 2) == "75", 1, 0)
-id <- "CODGEO"
-cand <- "cbd"
-tabflows <- readRDS("data/tabflows.Rds")
-idori <- "ORI"
-iddes <- "DES"
-idflow <- "FLOW"
-
-
-
 
 ##### RELOCATE THE STOCKS (matrix margins) #####
 
 # finger plan configuration ----
+
+#' DF transform to finger plan urban model
+#'
+#' This function allows you to change the origins and destination of flows 
+#' stored into a dataframe to simulate a finger-plan urban model. Cities containing 
+#' railroad station are designed as candidate and flows (origins and destinations) 
+#' are moved from non-candidate cities to the nearest candidate cities (using osm network)
+#'
+#' @param pol An sf object of the cities
+#' @param id A character string of the column containing the id of the pol object
+#' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object (1 must be equal to city containing a railroad station)
+#' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
+#' @param idori A character string giving the origin field name in tabflows
+#' @param iddes A character string giving the destination field name in tabflows
+#' @param idflow A character string giving the flow field name in tabflows
+#' 
+#' @return A data.frame of flows as tabflows with origins and destinations changed
+#' 
+#' @examples 
+#' # Import data
+#' 
+#' id <- "CODGEO"
+#' cand <- "fingerplan"
+#' data(pol)
+#' data(tabflows)
+#' idori <- "ORI"
+#' iddes <- "DES"
+#' idflow <- "FLOW"
+#' 
+#' fg_flows <- finger_plan (
+#' pol = pol, 
+#' id = id, 
+#' cand = cand, 
+#' tabflows = tabFlows,
+#' idori = idori,
+#' iddes = iddes,
+#' idflow = idflow)
+#' 
+#' fg_flows[1:10,]
+#'
+#' @export
 
 finger_plan <- function(pol, id, cand, tabflows, idori, iddes, idflow){
   tabflows$ORI <- tabflows[[idori]]
@@ -32,6 +57,46 @@ finger_plan <- function(pol, id, cand, tabflows, idori, iddes, idflow){
 
 # Polycentrisation ---- 
 
+#' DF transform to polycentric urban model
+#'
+#' This function allows you to change the origins and destination of flows 
+#' stored into a dataframe to simulate a polycentric urban model. Cities considered as employment 
+#' pole and containing railroad station are designed as candidate and flows (destinations only) are moved 
+#' from non-candidate cities to the nearest candidate cities (using osm network)
+#'
+#' @param pol An sf object of the cities
+#' @param id A character string of the column containing the id of the pol object
+#' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object (1 must be equal to city considered as employment pole and containing a railroad station)
+#' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
+#' @param iddes A character string giving the destination field name in tabflows
+#' @param idflow A character string giving the flow field name in tabflows
+#' 
+#' @return A data.frame of flows as tabflows with origins and destinations changed
+#' 
+#' @examples 
+#' # Import data
+#' 
+#' id <- "CODGEO"
+#' cand <- "polycentric"
+#' data(pol)
+#' data(tabflows)
+#' idori <- "ORI"
+#' iddes <- "DES"
+#' idflow <- "FLOW"
+#' 
+#' poly_flows <- polycentric_city (
+#' pol = pol, 
+#' id = id, 
+#' cand = cand, 
+#' tabflows = tabFlows,
+#' idori = idori,
+#' iddes = iddes,
+#' idflow = idflow)
+#' 
+#' poly_flows[1:10,]
+#'
+#' @export
+
 polycentric_city <- function(pol, id, cand, tabflows, iddes, idflow){
   tabflows$DES <- tabflows[[iddes]]
   tabflows$FLOW <- tabflows[[idflow]]
@@ -41,6 +106,47 @@ polycentric_city <- function(pol, id, cand, tabflows, iddes, idflow){
 }
 
 # TOD city ---- 
+
+#' DF transform to TOD urban model
+#'
+#' This function allows you to change the origins and destination of flows 
+#' stored into a dataframe to simulate a transport oriented developpement urban model. Cities considered as employment 
+#' pole and containing railroad station are designed as candidate and flows (origins and destinations) are moved 
+#' from non-candidate cities to the nearest candidate cities (using osm network)
+#'
+#' @param pol An sf object of the cities
+#' @param id A character string of the column containing the id of the pol object
+#' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object (1 must be equal to city considered as employment pole and containing a railroad station)
+#' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
+#' @param idori A character string giving the origin field name in tabflows
+#' @param iddes A character string giving the destination field name in tabflows
+#' @param idflow A character string giving the flow field name in tabflows
+#' 
+#' @return A data.frame of flows as tabflows with origins and destinations changed
+#' 
+#' @examples 
+#' # Import data
+#' 
+#' id <- "CODGEO"
+#' cand <- "tod"
+#' data(pol)
+#' data(tabflows)
+#' idori <- "ORI"
+#' iddes <- "DES"
+#' idflow <- "FLOW"
+#' 
+#' tod_flows <- tod_city (
+#' pol = pol, 
+#' id = id, 
+#' cand = cand, 
+#' tabflows = tabFlows,
+#' idori = idori,
+#' iddes = iddes,
+#' idflow = idflow)
+#' 
+#' tod_flows[1:10,]
+#'
+#' @export
 
 tod_city <- function(pol, id, cand, tabflows, iddes, idflow){
   tabflows$ORI <- tabflows[[idori]]
@@ -53,6 +159,48 @@ tod_city <- function(pol, id, cand, tabflows, iddes, idflow){
 }
 
 # CBDsation ---- 
+
+#' DF transform to CBD urban model
+#'
+#' This function allows you to change the origins and destination of flows 
+#' stored into a dataframe to simulate a Central Business District urban model. City considered as
+#' the main city of the region is designed as candidate and flows (destinations only) are moved 
+#' from non-candidate cities to the candidate city. The origins are moved into from the candidate city to the non-candidate city,
+#' so that every jobs are in the main city, and workers in the suburbs.
+#'
+#' @param pol An sf object of the cities
+#' @param id A character string of the column containing the id of the pol object
+#' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object (main city must be equal to 1 and 0 for the rest)
+#' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
+#' @param idori A character string giving the origin field name in tabflows
+#' @param iddes A character string giving the destination field name in tabflows
+#' @param idflow A character string giving the flow field name in tabflows
+#' 
+#' @return A data.frame of flows as tabflows with origins and destinations changed
+#' 
+#' @examples 
+#' # Import data
+#' 
+#' id <- "CODGEO"
+#' cand <- "cbd"
+#' data(pol)
+#' data(tabflows)
+#' idori <- "ORI"
+#' iddes <- "DES"
+#' idflow <- "FLOW"
+#' 
+#' cbd_flows <- cbd_city (
+#' pol = pol, 
+#' id = id, 
+#' cand = cand, 
+#' tabflows = tabFlows,
+#' idori = idori,
+#' iddes = iddes,
+#' idflow = idflow)
+#' 
+#' cbd_flows[1:10,]
+#'
+#' @export
 
 cbd_city <- function(pol, id, cand, tabflows, idori, iddes, idflow){
   tabflows$ORI <- tabflows[[idori]]
@@ -127,14 +275,31 @@ cbd_city <- function(pol, id, cand, tabflows, idori, iddes, idflow){
 
 # Excess commuting ----
 
+#' Cost distance matrix 
+#'
+#' This function allows you to create a distance cost matrix 
+#'
+#' @param matflows A squared matrix of flows
+#' @param matcost A squared matrix of cost
+#' 
+#' @return A squared matrix of flows 
+#' 
+#' @examples 
+#' # Import data
+#' 
+#'
+#' @export
+#'
+
 excess_commuting <- function(matflows, matcost){
   if(nrow(matflows) == ncol(matflows) & nrow(matcost) == ncol(matcost) & nrow(matflows) == nrow(matcost)){
     n = nrow(matflows)
   } else {
-    stop("Check the matrix size (square matrices are required)")
+    stop("Check the matrix size (square matrices of equal size are required)")
   }
   
   lpResult <- transport(a = apply(matflows, 1, sum), b = apply(matflows, 2, sum), costm = matcost) 
+  
   lpResult$from <- factor(x = lpResult$from, levels = 1:nrow(matflows), labels = 1:nrow(matflows))
   lpResult$to <- factor(x = lpResult$to, levels = 1:nrow(matflows), labels = 1:nrow(matflows))
   lpWide <- dcast(data = lpResult, formula = from ~ to, fill = 0, drop = FALSE, value.var = "mass")
@@ -143,6 +308,21 @@ excess_commuting <- function(matflows, matcost){
   return(matMin)
 }
 
+#' Cost distance matrix 
+#'
+#' This function allows you to create a distance cost matrix 
+#'
+#' @param matflows A squared matrix of flows
+#' @param matcost A squared matrix of cost
+#' 
+#' @return A squared matrix of flows 
+#' 
+#' @examples 
+#' # Import data
+#' 
+#'
+#' @export
+#'
 
 # Bind partial minimal matrices ----
 
@@ -170,7 +350,67 @@ bind_excess <- function(tabindiv, matcost, idspat, varori, vardes, varwgt, varia
 
 # Compute raw stewart raster ----
 
-stewart_raw <- function(tabflows, ref, selexpr = NULL, spatunits, res, span, mask){
+#' Raw Stewart raster
+#'
+#' This function allows you to create a smoothed raster from complex spatial pattern by computing
+#' indicators based on stock values weighted by distance. It cames from the potentials as defined 
+#' by J.Q Stewart (1942)
+#'
+#' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
+#' @param ref A reference table representing individuals and wich gives the weight index of the flows (the weight index's column must be named "IPONDI")
+#' @param selexpr Optional ; a selection expression as used in dplyr::filter
+#' @param spatunits An sp object (SpatialPolygonsDataFrame); the spatial extent of this object is used to create the grid.
+#' @param res Numeric ; resolution of the grid (in map units). If res is not set, the grid will contain around 7500 points.
+#' @param span Numeric; distance where the density of probability of the spatial interaction function equals 0.5.
+#' @param mask An sp object (SpatialPolygonsDataFrame) ; this object is used to clip the raster
+#' 
+#' @return A raster of potential values
+#' 
+#' @examples 
+#' # Import data
+#' tabflows <- tabflows
+#' ref <- ref
+#' spatunits <- spatunits
+#' res <- 100
+#' span <- 1000
+#' mask <- mask
+#' 
+#' stewart_raw <- stewart_raw(
+#' tabflows,
+#' ref,
+#' spatunits,
+#' res,
+#' span,
+#' mask
+#' )
+#' 
+#' plot(stewart_raw)
+#'
+#' # Import data
+#' tabflows <- tabflows
+#' ref <- ref
+#' spatunits <- spatunits
+#' res <- 100
+#' span <- 1000
+#' mask <- mask
+#' selexpr <- ref$SCP == "workers"
+#' 
+#' stewart_raw <- stewart_raw(
+#' tabflows,
+#' ref,
+#' selexpr,
+#' spatunits,
+#' res,
+#' span,
+#' mask
+#' )
+#' 
+#' plot(stewart_raw)
+#' 
+#' @export
+#'
+
+stewart_raw <- function(tabflows, ref, selexpr = NULL, spatunits = NULL, res, span, mask){
   stocks <- stock_flows(tabflows = tabflows, ref = ref, selexpr = selexpr)
   # spatUnits <- AttribJoin(df = as.data.frame(stocks), spdf = spatunits, df.field = "ID", spdf.field = "CODGEO") 
   resGrid <- CreateGrid(w = spatUnits, resolution = res)
@@ -185,6 +425,60 @@ stewart_raw <- function(tabflows, ref, selexpr = NULL, spatunits, res, span, mas
 
 
 # Compute difference between 2 stewart rasters (DES - ORI) ----
+
+#' Difference Stewart raster
+#'
+#' This function allows you to create a difference raster from two stewart potential raster.
+#'
+#' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
+#' @param selexpr Optional ; a selection expression as used in dplyr::filter
+#' @param spatunits An sp object (SpatialPolygonsDataFrame); the spatial extent of this object is used to create the grid.
+#' @param res Numeric ; resolution of the grid (in map units). If res is not set, the grid will contain around 7500 points.
+#' @param span Numeric; distance where the density of probability of the spatial interaction function equals 0.5.
+#' @param mask An sp object (SpatialPolygonsDataFrame) ; this object is used to clip the raster
+#' 
+#' @return A raster of positive and negative difference potential values
+#' 
+#' @examples 
+#' # Import data
+#' tabflows <- tabflows
+#' spatunits <- spatunits
+#' res <- 100
+#' span <- 1000
+#' mask <- mask
+#' 
+#' stewart_raw <- stewart_raw(
+#' tabflows,
+#' spatunits,
+#' res,
+#' span,
+#' mask
+#' )
+#' 
+#' plot(stewart_raw)
+#'
+#' # Import data
+#' tabflows <- tabflows
+#' ref <- ref
+#' spatunits <- spatunits
+#' res <- 100
+#' span <- 1000
+#' mask <- mask
+#' selexpr <- ref$SCP == "workers"
+#' 
+#' stewart_raw <- stewart_raw(
+#' tabflows,
+#' ref,
+#' selexpr,
+#' spatunits,
+#' res,
+#' span,
+#' mask
+#' )
+#' 
+#' plot(stewart_raw)
+#' 
+#' @export
 
 StewartDif <- function(tabflows, selexpr = NULL, spatunits, res, span, mask){
   stocksOri <- stock_flows(tabflows = tabflows, ref = "ORI", selexpr = selexpr)
@@ -209,13 +503,33 @@ StewartDif <- function(tabflows, selexpr = NULL, spatunits, res, span, mask){
 
 ##### COMPUTE AND MAP INDICATORS #####
 
-
 # Map indicators ----
 
-mobIndic <- function (tabflow,                 # a df containing the flows 
-                      shapeSf,                 # an sf df containing the cities
-                      id                       # the cities id
-){
+#' Shape mobility indicators
+#'
+#' This function allows you to create an sf object containing mobility indicators in each polygons using a data.frame of flows
+#'
+#' @param tabflow A data.frame of flows between origins and destinations (long format matrix containing, at least, 3 column : origins, destinations, flows)
+#' @param pol An sf object of the cities
+#' @param idpol A character string identifier of cities
+#' 
+#' @return An sf object of the cities with mobility indicators for each polygons
+#' 
+#' The map indocators are
+#' 
+#' @examples 
+#' # Import data
+#' tabflow <- tabflow
+#' pol <- pol
+#' idpol <- "idpol"
+#' 
+#' polflow <- mobIndic(tabflow,pol,idpol)
+#' 
+#' polflow[1:10,]
+#' 
+#' @export
+
+mobIndic <- function (tabflow, pol, idpol){
   
   #Store Origins to Origins Flow Value into a df name "tabflowOriOri"
   tabflowOriOri <- tabflow %>% filter_( "ORI == DES")
@@ -237,24 +551,65 @@ mobIndic <- function (tabflow,                 # a df containing the flows
   tabflow$Mobility <- (tabflow$DesFlow+tabflow$OriFlow) / (tabflow$OriFlow + tabflow$OriOriFlow)
   tabflow$RelBal <- (tabflow$DesFlow-tabflow$OriFlow) / (tabflow$OriFlow + tabflow$DesFlow)
   
-  shapeSf$idshp <- shapeSf[[id]]
-  shapeflow <- merge(x = shapeSf,y = tabflow, by.x="idshp", by.y = "idflow")
+  pol$idpol <- pol[[idpol]]
+  polflow <- merge(x = pol,y = tabflow, by.x="idpol", by.y = "idflow")
   
-  return(shapeflow)
+  return(polflow)
 }
 
 
 
 # dominant flows (Nystuen-Dacey) ----
 
+#' Dominant flows
+#'
+#' This function selects the flows to be keeped in a large matrix of flows responding to the Nystuen & Dacey's dominants flows criterion. 
+#'
+#' @param tabflow A data.frame of flows between origins and destinations (long format matrix containing, at least, 3 column : origins, destinations, flows)
+#' @param poptab A data.frame with population, flows summary (total at ori, des, intra) and core id
+#' @param idfield A character string identifier field of the poptab data.frame
+#' @param targetfield A character string ,field name of the poptab data.frame used for weighting (any flows summary, sum of incoming flows, sum of outgoing flows...)
+#' @param threspct A threshold (see 'Details')
+#' @param shape An s4 object of the cities (spatial.Data.frame)
+#' @param idpol A character string identifier of cities
+#' 
+#' This function selects which flow (fij or fji) must be kept. If the ratio weight of destination (wj) / weight of origin (wi) 
+#' is greater than the treshold, then fij is selected and fji is not. This function can perform the second criterion of the Nystuen & Dacey's dominants flows analysis.
+#' As the output is a boolean matrix, use element-wise multiplication to get flows intensity.
+#' 
+#' @return A boolean matrix of selected flows
+#' 
+#' @examples 
+#' # Import data
+#' tabflows <- tabflows
+#' poptab <- poptab
+#' idfield <- idfield
+#' targetfield <- "SumOri"
+#' threspct <- 3
+#' shape <- shape
+#' idpol <- "idpol"
+#' 
+#' domflow <- nystuen_dacey(
+#' tabflow,
+#' poptab,
+#' idfield,
+#' targetfield,
+#' threspct,
+#' shape,
+#' idpol)
+#' 
+#' domflow[1:10,]
+#' 
+#' @export
+
 nystuen_dacey <- function(
   tabflows,   # data.frame with commuting flows, long format (origin, destination, flow)
   poptab,     # table with population, flows summary (total at ori, des, intra) and core id
-  idfield,    # CHAR, name of the id field in the population table (poptab)
-  targetfield,# CHAR, name of the variable used for weighting
-  threspct,    # threshold for defining max flow
-  shape,
-  shapeId
+  idfield,    # character string , name of the id field in the population table (poptab)
+  targetfield,# character string , name of the variable used for weighting
+  threspct,    # Numeric, threshold for defining max flow
+  shape,      # an S4 spatial data.frame of cities
+  idpol    # character string identifier of cities
 )
 {
   
@@ -333,10 +688,31 @@ nystuen_dacey <- function(
 
 # ROUTING (COMPUTE NETWORK DISTANCE BETWEEN CITIES) ----
 
-routing_machine <- function(road, #A street network represented as sf LINESTRING objects 
-                            pol,  #Polygons of cities
-                            idpol #Polygons identifier of cities
-){
+#' Nearest neighbours using road network
+#'
+#' This function allows you to find the nearest neighbours from polygons centroïd to one another using the road network. 
+#' It creates a squared distance matrix between every city in meters.
+#'
+#' @param road An sf object of street network 
+#' @param pol An sf object of the cities
+#' @param idpol A character string identifier of cities
+#' 
+#' @return a squared matrix of distance in meters
+#' 
+#' @examples 
+#' # Import data
+#' road <- road
+#' pol <- pol
+#' idpol <- "idpol"
+#' 
+#' matDist <- routing_machine(road,pol,idpol)
+#' 
+#' matDist[1:10,]
+#' 
+#' @export
+#'
+
+routing_machine <- function(road, pol,idpol){
   #Set weight to the same
   road$wgt <- 0
   
@@ -368,6 +744,41 @@ routing_machine <- function(road, #A street network represented as sf LINESTRING
 
 # Compute totals by origin or destination ----
 
+#' Total origin and destination
+#'
+#' This function allows you to create a long format data.frame of flow from a table of individuals. 
+#' It may deal with weighted individuals and filter these individuals
+#'
+#' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, 3 column : origins, destinations, flows)
+#' @param ref A reference table representing individuals and wich gives the weight index of the flows (the weight index's column must be named "IPONDI")
+#' @param selexpr Optional ; a selection expression as used in dplyr::filter
+#' 
+#' @return A long format data.frame
+#' 
+#' @examples 
+#' # Import data
+#' 
+#' tabflows <- tabflows
+#' ref <- ref
+#' 
+#' stock_flows <- stock_flows(tabflows, ref)
+#' 
+#' stock_flows[1:10,]
+#' 
+#' tabflows <- tabflows
+#' ref <- ref
+#' selexpr <- ref$SCP == "workers"
+#' 
+#' stock_flows <- stock_flows(tabflows, ref, selexpr)
+#' 
+#' stock_flows[1:10,]
+#' 
+#' 
+#' 
+#' 
+#' @export
+#'
+
 stock_flows <- function(tabflows, ref, selexpr){
   if(is.null(selexpr)){
     tabFlows <- tabflows %>% select_(ref, "IPONDI")
@@ -384,6 +795,49 @@ stock_flows <- function(tabflows, ref, selexpr){
 
 # Prepare OD matrix wide matrix from the table of individuals -----
 
+#' O/D Matrix from individuals
+#'
+#' This function allows you to create an O/D matrix from a table of individuals. 
+#' It may deal with weighted individuals and filter these individuals
+#'
+#' @param tabindiv A data.frame of individuals between origins and destinations (long format matrix containing, at least, origins, destinations for each individuals)
+#' @param idspat A character vector giving the unique value of the id in tabflows (Origins)
+#' @param varori A character string giving the origin field name in tabindiv
+#' @param vardes A character string giving the destination field name in tabindiv
+#' @param varwgt Default to NULL ; a character string giving the weight field name in tabindiv
+#' @param variable Default to NULL ; a character string giving the name of the field in tabindiv in wich selected label will be filtered
+#' @param label Default to NULL ; a character string giving the value of the variable to be filtered (or keeped)
+#' 
+#' @return A squared matrix of flows 
+#' 
+#' @examples 
+#' # Import data
+#' tabindiv <- tabindiv
+#' varori <- "ORI"
+#' vardes <- "DES"
+#' 
+#' matFlows <- prepare_matflows(tabindiv, idspat, varori, vardes)
+#' 
+#' matFlows[1:10,]
+#' 
+#' # we will now weight individuals with the column "WGT" 
+#' varwgt <- "WGT"
+#' 
+#' matFlows <- prepare_matflows(tabindiv, idspat, varori, vardes, varwgt)
+#' 
+#' matFlows[1:10,]
+#' 
+#' # now we will only extract the values where the SPC is equal to "Worker"
+#' variable <- "SPC"
+#' label <- "Worker"
+#' 
+#' matFlowsW <- prepare_matflows(tabindiv, idspat, varori, vardes, varwgt, variable, label)
+#' 
+#' matFlowsW[1:10,]
+#' 
+#' @export
+#'
+
 prepare_matflows <- function(tabindiv, idspat, varori, vardes, varwgt = NULL, variable = NULL, label = NULL){
   tabflows <- create_tabflows(tabindiv = tabindiv, varori = varori, vardes = vardes, varwgt = varwgt, variable = variable, label = label)
   matFlows <- cast_tabflows(tabflows = tabflows, idspat = idspat)
@@ -393,7 +847,51 @@ prepare_matflows <- function(tabindiv, idspat, varori, vardes, varwgt = NULL, va
 }
 
 
+
 # Create OD matrix (long table) ----
+
+#' Create an O/D long table
+#'
+#' This function allows you to create an Origin/Destination matrix (in a long table format) from a table of individuals. 
+#' It may deal with weighted individuals and filter these individuals
+#'
+#' @param tabindiv A data.frame of individuals between origins and destinations (long format matrix containing, at least, origins, destinations for each individuals)
+#' @param varori A character string giving the origin field name in tabindiv
+#' @param vardes A character string giving the destination field name in tabindiv
+#' @param varwgt Default to NULL ; a character string giving the weight field name in tabindiv
+#' @param variable Default to NULL ; a character string giving the name of the field in tabindiv in wich selected label will be filtered
+#' @param label Default to NULL ; a character string giving the value of the variable to be filtered (or keeped)
+#' 
+#' @return A data.frame of three column : ORI, DES, WGT 
+#' 
+#' @examples 
+#' # Import data
+#' tabindiv <- tabindiv
+#' varori <- "ORI"
+#' vardes <- "DES"
+#' 
+#' tabflows <- create_tabflows(tabindiv, varori, vardes)
+#' 
+#' tabflows[1:10,]
+#' 
+#' # we will now weight individuals with the column "WGT" 
+#' varwgt <- "WGT"
+#' 
+#' tabflows <- create_tabflows(tabindiv, varori, vardes, varwgt)
+#' 
+#' tabflows[1:10,]
+#' 
+#' # now we will only extract the values where the SPC is equal to "Worker"
+#' variable <- "SPC"
+#' label <- "Worker"
+#' 
+#' tabflowsW <- create_tabflows(tabindiv, varori, vardes, varwgt, variable, label)
+#' 
+#' tabflowsW[1:10,]
+#'
+#' @export
+#'
+
 
 create_tabflows <- function(tabindiv, varori, vardes, varwgt = NULL, variable = NULL, label = NULL){
   # rename variables
@@ -423,6 +921,28 @@ create_tabflows <- function(tabindiv, varori, vardes, varwgt = NULL, variable = 
 
 # Cast OD long table into square matrix ----
 
+#' Create an O/D square matrix
+#'
+#' This function allows you to create an Origin/Destination squared matrix from a Origin/Destination long format matrix
+#'
+#' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, 3 column : origins, destinations, flows)
+#' @param idspat A character vector giving the unique value of the id in tabflows (Origins or Destination)
+#' 
+#' @return A squared Origins (rows) and Destination (columns) matrix of flows 
+#' 
+#' @examples 
+#' # Import data
+#' tabflows <- tabflows
+#' idspat <- pol$id
+#' 
+#' matFlows <- cast_tabflows(tabflows, idspat)
+#' 
+#' matFlows[1:10,1:10]
+#'
+#' @export
+#'
+
+  
 cast_tabflows <- function(tabflows, idspat){
   tabIndex <- expand.grid(ORI = idspat,
                           DES = idspat,
@@ -439,6 +959,31 @@ cast_tabflows <- function(tabflows, idspat){
 
 
 # relocate (used to relocate people and jobs) ----
+
+#' Create a dictionnary of id change 
+#'
+#' This function is a low-level one and used in each *_city function (cbd_city, tod_city, finger_city ...etc.).
+#' this gives a dictionary which indicates by which new identifier the old one must be changed, the latter 
+#' answering the criterion of proximity and to the candidacy of the city 
+#'
+#' @param pol An sf object of the cities
+#' @param id A character string of the column containing the id of the pol object
+#' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object
+#' 
+#' @return A data.frame with two column : OLD (containing the id to be changed) and NEW (containing the new id)
+#' 
+#' @examples 
+#' # Import data
+#' pol <- tabflows
+#' id <- "id"
+#' cand <- cand
+#' 
+#' dictioTransfer <- relocate_one(pol, id, cand)
+#' 
+#' dictioTransfer[1:10,]
+#'
+#' @export
+#'
 
 relocate_one <- function(pol, id, cand){
   if(st_crs(pol)[[1]] != 2154) stop("Check the CRS (2154) and read the fucking manual")
