@@ -5,7 +5,6 @@
 
 #' DF transform to finger plan urban model
 #'
-<<<<<<< HEAD
 #' This function allows you to change the origins and destination of flows 
 #' stored into a dataframe to simulate a finger-plan urban model. Cities containing 
 #' railroad station are designed as candidate and flows (origins and destinations) 
@@ -14,16 +13,6 @@
 #' @param pol An sf object of the cities
 #' @param id A character string of the column containing the id of the pol object
 #' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object (1 must be equal to city containing a railroad station)
-=======
-#' this function allows you to change the origins and destination of flows 
-#' stored into a dataframe to simulate a finger-plan urban model. Cities containing 
-#' railroad station are designed as candidate and flows are moved from non-candidate 
-#' cities to the nearest candidate cities (using osm network)
-#'
-#' @param pol An sf object of the cities
-#' @param id A character string of the column containing the id of the pol object
-#' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object
->>>>>>> b64e270b8981574731ed6415a5b43c52968099bd
 #' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
 #' @param idori A character string giving the origin field name in tabflows
 #' @param iddes A character string giving the destination field name in tabflows
@@ -54,11 +43,6 @@
 #' fg_flows[1:10,]
 #'
 #' @export
-<<<<<<< HEAD
-=======
-#'
-
->>>>>>> b64e270b8981574731ed6415a5b43c52968099bd
 
 finger_plan <- function(pol, id, cand, tabflows, idori, iddes, idflow){
   tabflows$ORI <- tabflows[[idori]]
@@ -75,24 +59,14 @@ finger_plan <- function(pol, id, cand, tabflows, idori, iddes, idflow){
 
 #' DF transform to polycentric urban model
 #'
-<<<<<<< HEAD
 #' This function allows you to change the origins and destination of flows 
 #' stored into a dataframe to simulate a polycentric urban model. Cities considered as employment 
 #' pole and containing railroad station are designed as candidate and flows (destinations only) are moved 
-=======
-#' this function allows you to change the origins and destination of flows 
-#' stored into a dataframe to simulate a polycentric urban model. Cities considered as employment 
-#' pole and containing railroad station are designed as candidate and flows are moved 
->>>>>>> b64e270b8981574731ed6415a5b43c52968099bd
 #' from non-candidate cities to the nearest candidate cities (using osm network)
 #'
 #' @param pol An sf object of the cities
 #' @param id A character string of the column containing the id of the pol object
-<<<<<<< HEAD
 #' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object (1 must be equal to city considered as employment pole and containing a railroad station)
-=======
-#' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object
->>>>>>> b64e270b8981574731ed6415a5b43c52968099bd
 #' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
 #' @param iddes A character string giving the destination field name in tabflows
 #' @param idflow A character string giving the flow field name in tabflows
@@ -122,10 +96,6 @@ finger_plan <- function(pol, id, cand, tabflows, idori, iddes, idflow){
 #' poly_flows[1:10,]
 #'
 #' @export
-<<<<<<< HEAD
-=======
-#'
->>>>>>> b64e270b8981574731ed6415a5b43c52968099bd
 
 polycentric_city <- function(pol, id, cand, tabflows, iddes, idflow){
   tabflows$DES <- tabflows[[iddes]]
@@ -139,24 +109,14 @@ polycentric_city <- function(pol, id, cand, tabflows, iddes, idflow){
 
 #' DF transform to TOD urban model
 #'
-<<<<<<< HEAD
 #' This function allows you to change the origins and destination of flows 
 #' stored into a dataframe to simulate a transport oriented developpement urban model. Cities considered as employment 
 #' pole and containing railroad station are designed as candidate and flows (origins and destinations) are moved 
-=======
-#' this function allows you to change the origins and destination of flows 
-#' stored into a dataframe to simulate a transport oriented developpement urban model. Cities considered as employment 
-#' pole and containing railroad station are designed as candidate and flows are moved 
->>>>>>> b64e270b8981574731ed6415a5b43c52968099bd
 #' from non-candidate cities to the nearest candidate cities (using osm network)
 #'
 #' @param pol An sf object of the cities
 #' @param id A character string of the column containing the id of the pol object
-<<<<<<< HEAD
 #' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object (1 must be equal to city considered as employment pole and containing a railroad station)
-=======
-#' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object
->>>>>>> b64e270b8981574731ed6415a5b43c52968099bd
 #' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
 #' @param idori A character string giving the origin field name in tabflows
 #' @param iddes A character string giving the destination field name in tabflows
@@ -187,10 +147,6 @@ polycentric_city <- function(pol, id, cand, tabflows, iddes, idflow){
 #' tod_flows[1:10,]
 #'
 #' @export
-<<<<<<< HEAD
-=======
-#'
->>>>>>> b64e270b8981574731ed6415a5b43c52968099bd
 
 tod_city <- function(pol, id, cand, tabflows, iddes, idflow){
   tabflows$ORI <- tabflows[[idori]]
@@ -206,7 +162,6 @@ tod_city <- function(pol, id, cand, tabflows, iddes, idflow){
 
 #' DF transform to CBD urban model
 #'
-<<<<<<< HEAD
 #' This function allows you to change the origins and destination of flows 
 #' stored into a dataframe to simulate a Central Business District urban model. City considered as
 #' the main city of the region is designed as candidate and flows (destinations only) are moved 
@@ -216,16 +171,6 @@ tod_city <- function(pol, id, cand, tabflows, iddes, idflow){
 #' @param pol An sf object of the cities
 #' @param id A character string of the column containing the id of the pol object
 #' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object (main city must be equal to 1 and 0 for the rest)
-=======
-#' this function allows you to change the origins and destination of flows 
-#' stored into a dataframe to simulate a Central Business District urban model. City considered as
-#' the main city of the region is designed as candidate and flows are moved 
-#' from non-candidate cities to the candidate city
-#'
-#' @param pol An sf object of the cities
-#' @param id A character string of the column containing the id of the pol object
-#' @param cand A character string of the column containing binary (1, 0) candidate value of the pol object
->>>>>>> b64e270b8981574731ed6415a5b43c52968099bd
 #' @param tabflows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
 #' @param idori A character string giving the origin field name in tabflows
 #' @param iddes A character string giving the destination field name in tabflows
@@ -256,10 +201,6 @@ tod_city <- function(pol, id, cand, tabflows, iddes, idflow){
 #' cbd_flows[1:10,]
 #'
 #' @export
-<<<<<<< HEAD
-=======
-#'
->>>>>>> b64e270b8981574731ed6415a5b43c52968099bd
 
 cbd_city <- function(pol, id, cand, tabflows, idori, iddes, idflow){
   tabflows$ORI <- tabflows[[idori]]
@@ -389,12 +330,12 @@ bind_excess <- function(tabindiv, matcost, idspat, varori, vardes, varwgt, varia
   matToFill <- matrix(data = rep(0, times = length(matcost)), nrow = nrow(matcost), ncol = ncol(matcost))
   for(i in 1:length(modal)){
     matFlowsPart <- prepare_matflows(tabindiv = tabindiv, 
-                                  idspat = idspat, 
-                                  varori = varori, 
-                                  vardes = vardes, 
-                                  varwgt = varwgt,
-                                  variable = variable,
-                                  label = modal[i])
+                                     idspat = idspat, 
+                                     varori = varori, 
+                                     vardes = vardes, 
+                                     varwgt = varwgt,
+                                     variable = variable,
+                                     label = modal[i])
     matFlowsPartMin <- excess_commuting(matflows = matFlowsPart, matcost = matcost)
     matToFill <- matToFill + matFlowsPartMin
   }
@@ -1001,7 +942,7 @@ create_tabflows <- function(tabindiv, varori, vardes, varwgt = NULL, variable = 
 #' @export
 #'
 
-  
+
 cast_tabflows <- function(tabflows, idspat){
   tabIndex <- expand.grid(ORI = idspat,
                           DES = idspat,
