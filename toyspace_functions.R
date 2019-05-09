@@ -515,7 +515,16 @@ StewartDif <- function(tabflows, selexpr = NULL, spatunits, res, span, mask){
 #' 
 #' @return An sf object of the cities with mobility indicators for each polygons
 #' 
-#' The map indocators are
+#' There are 4 mobility indicators :
+#'       - Self-Sufficiency (SelfSuff) : it refers to the ratio between internal flows and the amount of workers. 
+#'       It expresses the local balance between workers and jobs with a low rate of outflows 
+#'       (from 0 to 1, where 0 express dependency and 1 sufficiency)
+#'       - Dependency (Dependency) : it refers to the ratio between internal flows and the population of the city. 
+#'       It expresses the level of dependence of a city in terms of job offer.
+#'       - Mobility (Mobility) : it refers to the ratio between inflows and outflows on one hand, and the amount of workers on the other.
+#'       It expresses the density of displacements in a city.
+#'       - Relative Balance (RelBal) : it refers to the ratio between inflows less outflows on one hand and the population of the city on the other.
+#'       It expresses the degree of polarization of a city, thus its attractiveness in terms of employment.
 #' 
 #' @examples 
 #' # Import data
@@ -547,7 +556,7 @@ mobIndic <- function (tabflow, pol, idpol){
   
   #Building indicators
   tabflow$Dependency <- tabflow$OriOriFlow / (tabflow$OriFlow + tabflow$OriOriFlow)
-  tabflow$AutoSuff <- tabflow$OriOriFlow / (tabflow$DesFlow + tabflow$OriOriFlow)
+  tabflow$SelfSuff <- tabflow$OriOriFlow / (tabflow$DesFlow + tabflow$OriOriFlow)
   tabflow$Mobility <- (tabflow$DesFlow+tabflow$OriFlow) / (tabflow$OriFlow + tabflow$OriOriFlow)
   tabflow$RelBal <- (tabflow$DesFlow-tabflow$OriFlow) / (tabflow$OriFlow + tabflow$DesFlow)
   
