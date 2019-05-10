@@ -1,6 +1,6 @@
-### toyspace
+# toyspace
 
-# RAW DATA :
+### RAW DATA :
 
 	- citiesShape (shapefile of cities to be mapped)
 	- tabFlows (table of flow between cities, containing : origin, destination, transport mode and SPC)
@@ -12,7 +12,7 @@
 
 
 
-# MAKING DATA :
+### MAKING DATA :
 
 	For each region :
 		- popTab (sums of every flows, origin (population), destination (workers), internal (population))
@@ -39,7 +39,7 @@
 		
 		
 		
-# SCENARIOS :
+### SCENARIOS :
 
 	Relocate populations and activities :
 		- Finger plan City
@@ -89,7 +89,7 @@
 
 
 
-# AMEGINAT-R :
+### AMEGINAT-R :
 	
 	Scenarios
 
