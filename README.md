@@ -18,7 +18,6 @@
 - popTabAgr (Aggregation of popTab for metropolis cities)
 - tabFlowsAgr (Aggregation of tabFlows for metropolis cities)
 - citiesShapeAgr (Aggregation of citiesShape for metropolis cities)
-- matFlow (flow Matrix)
 - coordCom (Cities Coordinate)
 - list potential (proportion of SPC)
 - candidate (1 | 0) (citiesShape$cand) :
