@@ -1,7 +1,6 @@
 # toyspace
 
 ### RAW DATA :
-
 	- citiesShape (shapefile of cities to be mapped)
 	- tabFlows (table of flow between cities, containing : origin, destination, transport mode and SPC)
 	- roadNetwork (a network of road used to compute a distance matrix between cities)
@@ -14,7 +13,7 @@
 
 ### MAKING DATA :
 
-	**For each region :**
+	For each region :
 		- popTab (sums of every flows, origin (population), destination (workers), internal (population))
 		- popTabAgr (Aggregation of popTab for metropolis cities)
 		- tabFlowsAgr (Aggregation of tabFlows for metropolis cities)
