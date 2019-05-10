@@ -40,6 +40,7 @@
 ### SCENARIOS :
 
 **Relocate populations and activities :**
+'''
   - Finger plan City
 	finger_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
 		relocate_one(pol,id,cand){}
@@ -61,7 +62,7 @@
 		proportionalSPC(){}
 		proportionalTransport(){}
 	}
-
+'''
 **Relocate equipment :**
 - Near the residents
 - Near jobs
