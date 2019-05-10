@@ -1,13 +1,13 @@
 # toyspace
 
 ### RAW DATA :
-	- citiesShape (shapefile of cities to be mapped)
-	- tabFlows (table of flow between cities, containing : origin, destination, transport mode and SPC)
-	- roadNetwork (a network of road used to compute a distance matrix between cities)
+- citiesShape (shapefile of cities to be mapped)
+- tabFlows (table of flow between cities, containing : origin, destination, transport mode and SPC)
+- roadNetwork (a network of road used to compute a distance matrix between cities)
 
-	- railRoads (railRoad network to be mapped)
-	- mainRoad (mainRoad network to be mapped)
-	- station (train station to be mapped)
+- railRoads (railRoad network to be mapped)
+- mainRoad (mainRoad network to be mapped)
+- station (train station to be mapped)
 
 
 
