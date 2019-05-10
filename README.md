@@ -29,7 +29,7 @@
 			-metro (metropolis in cities (cbd_city))
 			-sub (subUrb and countryside in cities (cbd_city))
 	
-	#Function : 
+	Function : 
 		-nystuen_dacey(){} (for macro flow tab)
 		-excess_commuting(){}
 		-mob_indic(){} (for index tab)
@@ -41,7 +41,7 @@
 		
 #SCENARIOS :
 
-	-Relocate populations and activities :
+	Relocate populations and activities :
 		-Finger plan City
 			finger_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
 				relocate_one(pol,id,cand){}
@@ -64,17 +64,17 @@
 				proportionalTransport(){}
 			}
 
-	-Relocate equipment :
+	Relocate equipment :
 		-Near the residents
 		-Near jobs
 		-Balancing residents-jobs
 
-	-Act on residential and professional mobility :
+	Act on residential and professional mobility :
 		-Job exchange
 		-Housing exchange
 		-Exchange without constraint
 
-	-Act on the mode of transport :
+	Act on the mode of transport :
 		-Zero car
 			reassignTransport(){}
 		-All car
@@ -91,9 +91,9 @@
 
 #AMEGINAT-R :
 	
-	-Scenarios
+	Scenarios
 
-	-Index
+	Index
 		-data:
 		matFlow
 		tabFlows
@@ -105,7 +105,7 @@
 		-using:
 		mob_indic(){}	
 	
-	-Structure
+	Structure
 		-data:	
 		list potential	
 		citiesShape
@@ -117,7 +117,7 @@
 		potential_palette(){}
 		potential_contour(){}
 	
-	-Micro Flow
+	Micro Flow
 		-data:
 		tabFlows
 		citiesShape	
@@ -128,7 +128,7 @@
 		-using:
 		get_links(){}
 	
-	-Macro Flow
+	Macro Flow
 		-data:
 		popTab
 		popTabAgr
