@@ -41,26 +41,26 @@
 
 **Relocate populations and activities :**
 	- Finger plan City
-		finger_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
-			relocate_one(pol,id,cand){}
-		}
+	finger_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
+		relocate_one(pol,id,cand){}
+	}
 	- Transport-oriented development City
-		tod_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
-			relocate_one(pol,id,cand){}
-		}
+	tod_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
+		relocate_one(pol,id,cand){}
+	}
 	- Polycentric City
-		polycentric_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
-			relocate_one(pol,id,cand){}
-		}
+	polycentric_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
+		relocate_one(pol,id,cand){}
+	}
 	- CBD-Model-City
-		cbd_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
-			routing(roadNetwork,pol,idpol){
-				diagDist(){}
-			}
-			relocate_one(pol,id,cand){}
-			proportionalSPC(){}
-			proportionalTransport(){}
+	cbd_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
+		routing(roadNetwork,pol,idpol){
+			diagDist(){}
 		}
+		relocate_one(pol,id,cand){}
+		proportionalSPC(){}
+		proportionalTransport(){}
+	}
 
 **Relocate equipment :**
 - Near the residents
