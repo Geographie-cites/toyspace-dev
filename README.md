@@ -30,9 +30,11 @@
 **Function :**
 - nystuen_dacey(){} (for macro flow tab)
 - excess_commuting(){}
+- bind_excess(){}
 - mob_indic(){} (for index tab)
 - potential_palette(){} (for structure tab)
-- potential_contour(){} (for structure tab)
+- stewart_raw(){} (for structure tab)
+- stewartDif(){} (for structure tab)
 - get_links(){} (for micro flow tab)
 		
 		
@@ -55,7 +57,7 @@
 	}
   - CBD-Model-City
 	cbd_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
-		routing(roadNetwork,pol,idpol){
+		routing_machine(roadNetwork,pol,idpol){
 			diagDist(){}
 		}
 		relocate_one(pol,id,cand){}
@@ -89,6 +91,9 @@
 ### AMEGINAT-R :
 	
 **Scenarios**
+- call the dataframe compute by the scenarios [function] 
+
+**Graphs**
 
 **Index**
 - data:
