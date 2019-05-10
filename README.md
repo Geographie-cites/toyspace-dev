@@ -40,19 +40,19 @@
 ### SCENARIOS :
 
 **Relocate populations and activities :**
-	- Finger plan City
+  - Finger plan City
 	finger_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
 		relocate_one(pol,id,cand){}
 	}
-	- Transport-oriented development City
+  - Transport-oriented development City
 	tod_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
 		relocate_one(pol,id,cand){}
 	}
-	- Polycentric City
+  - Polycentric City
 	polycentric_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
 		relocate_one(pol,id,cand){}
 	}
-	- CBD-Model-City
+  - CBD-Model-City
 	cbd_city(pol,id,cand,tabFlows,idOri,idDes,idFlows){
 		routing(roadNetwork,pol,idpol){
 			diagDist(){}
