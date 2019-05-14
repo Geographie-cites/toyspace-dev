@@ -1,32 +1,69 @@
 ##### Making data from 
 
-stockFlows <- stock_flows(tabflows = tabflows, ref = inseeMob, selexpr = NULL)
-
 tabflows <- readRDS("data/tabflows.Rds")
-inseeMob <- read.csv("data/FD_MOBPRO_2014.txt",sep = ";"  )
+inseeMob <- read.csv("data/FD_MOBPRO_2014.txt",sep = ";")
+communes <- readRDS("data/communes.Rds")
+shapeStation <- readRDS("data/shapeStation.Rds")
 
-#tabFlows = ORI DES MODE FLOW DIST DISTOT ORILIB DESLIB
+#tabFlows = ORI DES MODE FLOW DIST DISTOT ORILIB DESLIB ##### 
 tabflows1 <- inseeMob %>% group_by(COMMUNE,DCFLT,IPONDI,TRANS) %>% summarise(FLOW = sum(IPONDI))
    # chopper le code d'hadri pour les modes de transports
    # jointure avec fichier spat pour récup noms
    # chopper les distances
 
-#poptab = insee totori totdes totintra
-pop_tab <- function(tabFlows){
-  tabflowOriOri <- tabFlows %>% filter_( "ORI == DES") %>% group_by(ORI,DES) %>%summarise(TOTINTRA = sum(FLOW))
-  tabflowOri <-  tabFlows %>% filter_( "ORI != DES") %>% group_by(ORI) %>% summarise(TOTORI = sum(FLOW))
-  tabflowDes <-  tabFlows %>% filter_( "ORI != DES") %>% group_by(DES) %>% summarise(TOTDES = sum(FLOW))
-  tabflow <- left_join(x = tabflowOriOri, y = tabflowOri, by = c("ORI","ORI"))
-  tabflow <- left_join(x = tabflow, y = tabflowDes, by = c("DES","DES"))
-  tabflow$DES <- NULL
-  colnames(tabflow) <- c("idflow", "TOTINTRA","TOTORI", "TOTDES")
-  return(tabflow)
+#poptab = insee totori totdes totintra #####
+
+#' Total flows of a DF
+#'
+#' This function allows you to store the totals of origins, destinations and intrenals flows for each city in a dataframe,
+#' from a long format matrix of flows.
+#'
+#' @param tabFlows A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
+#' 
+#' @return A data.frame of totals origins, destinations and internals flows for each city 
+#' 
+#' @examples 
+#' # Import data
+#' tabflows <- tabflows
+#' 
+#' popTab <- pop_tab(tabflows)
+#' 
+#' popTab[1:10,]
+#'
+#' @export
+
+pop_tab <- function(tabflows){
+  tabflowOriOri <- tabflows %>% filter_( "ORI == DES") %>% group_by(ORI,DES) %>%summarise(TOTINTRA = sum(FLOW))
+  tabflowOri <-  tabflows %>% filter_( "ORI != DES") %>% group_by(ORI) %>% summarise(TOTORI = sum(FLOW))
+  tabflowDes <-  tabflows %>% filter_( "ORI != DES") %>% group_by(DES) %>% summarise(TOTDES = sum(FLOW))
+  poptab <- left_join(x = tabflowOriOri, y = tabflowOri, by = c("ORI","ORI"))
+  poptab <- left_join(x = poptab, y = tabflowDes, by = c("DES","DES"))
+  poptab$DES <- NULL
+  colnames(poptab) <- c("idflow", "TOTINTRA","TOTORI", "TOTDES")
+  return(poptab)
 }
 
-popTab <- pop_tab(tabflows)
 
-#coordcom = CODGEO, X1, X2, LIBGEO
-shape <- readRDS(file = "data/communes.Rds")
+
+#coordcom = CODGEO, X1, X2, LIBGEO #####
+
+#' cities coordinates
+#'
+#' This function allows you to store the coordinates of each cities in a dataframe
+#'
+#' @param shape An s4 object of the cities (spatial.Data.frame)
+#' 
+#' @return A data.frame with the same variables as the shape, centroïds (lat,lon) and no geometries
+#' 
+#' @examples 
+#' # Import data
+#' shape <- shape
+#' 
+#' coordCom <- coord_com(shape)
+#' 
+#' coordCom[1:10,]
+#'
+#' @export
 
 coord_com <- function(shape){
   shapeSf <- st_as_sf(shape)
@@ -39,49 +76,62 @@ coord_com <- function(shape){
   return(shapeSfCent)
 }
 
-coordCom <- coord_com(shape)
+#Aggregate df ####
 
-#Fonction d'aggregation de ville
-before <- c("75101", "75102", "75103","75104", "75105", 
-            "75106","75107", "75108", "75109","75110", 
-            "75111", "75112", "75113", "75114","75115", 
-            "75116", "75117","75118", "75119", "75120")
-after <- "75056"
-tabflow <- tabflows
-ori <- "ORI"
-des <- "DES"
+#' Aggregate cities of a DF
+#'
+#' This function allows you to aggregate cities of a dataframe from designed identifier
+#'
+#' @param before A list of the identifiers to be replaced
+#' @param after A character string of the identifier replacement
+#' @param tabflow A data.frame of flows between origins and destinations (long format matrix containing, at least, origins, destinations, flows)
+#' @param idori A character string giving the origin field name in tabflows
+#' @param iddes A character string giving the destination field name in tabflows
+#' 
+#' @return A data.frame with the same variables as the shape, centroïds (lat,lon) and no geometries
+#' 
+#' @examples 
+#' # Import data
+#' before <- before
+#' after <- after
+#' tabflow <- tabflow
+#' idori <- idori
+#' iddes <- iddes
+#' 
+#' cityAggregate <- city_aggregate(before, after, tabflow, idori, iddes)
+#' 
+#' cityAggregate[1:10,]
+#'
+#' @export
 
-city_aggregate <- function(before, after, tabflow, ori, des){
+city_aggregate <- function(before, after, tabflow, idori, iddes){
     dicoAgr <- tibble(OLDCODE = before, NEWCODE = after)
-    tabflow$ORIAGR <- plyr::mapvalues(x = tabflow[[ori]], from = dicoAgr$OLDCODE, to = dicoAgr$NEWCODE)
-    tabflow$DESAGR <- plyr::mapvalues(x = tabflow[[des]], from = dicoAgr$OLDCODE, to = dicoAgr$NEWCODE)
+    tabflow$ORIAGR <- plyr::mapvalues(x = tabflow[[idori]], from = dicoAgr$OLDCODE, to = dicoAgr$NEWCODE)
+    tabflow$DESAGR <- plyr::mapvalues(x = tabflow[[iddes]], from = dicoAgr$OLDCODE, to = dicoAgr$NEWCODE)
     return(tabflow)
 }
 
-cityAggregate <-city_aggregate(before, after, tabflow, ori, des)
+#candidate #####
 
-#candidate 
-    #citiesShape$station
-    gar_comm <- read.csv("data/communes_gares_idf.csv", sep = ";")
-    gar_comm$GARES <- 1
+    #citiesShape$station ####
+      candidat_station <- function(station, communes){
+          communes <- st_as_sf(communes)
+          station <- st_as_sf(station)
+          commStation <- st_intersects(communes, station, prepared = FALSE)
+          communes$station <- ifelse(lengths(commStation) > 1,1,0)
+          return(communes)
+      }
+
+
+    #citiesShape$statPole #####
+    #fonction ICDR thomas louail
     
-    gar_comm$insee <- as.character(gar_comm$insee)
-    communes <- communes %>% left_join(x = communes, y = gar_comm[ , c("insee", "GARES")], by = c("CODGEO"="insee"))
-    communes[is.na(communes)] <- 0
+    #citiesShape$metro #####
+    main_city <- function(shape,idcol,id){
+        shape$candCBD <- ifelse(communes[[idcol]]==id,1,0)
+    }
 
-    #citiesShape$statPole
-    
-
-    #citiesShape$metro
-main_city <- function(shape,idcol,id){
-    shape$candCBD <- ifelse(communes[[idcol]]==id,1,0)
-}
-
-#poptabAgr
-
-#tabFlowAgr
-
-#listpotential
+#listpotential #####
 
 
 ##### RELOCATE THE STOCKS (matrix margins) #####
