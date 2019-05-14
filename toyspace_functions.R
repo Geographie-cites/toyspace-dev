@@ -1,3 +1,88 @@
+##### Making data from 
+
+stockFlows <- stock_flows(tabflows = tabflows, ref = inseeMob, selexpr = NULL)
+
+tabflows <- readRDS("data/tabflows.Rds")
+inseeMob <- read.csv("data/FD_MOBPRO_2014.txt",sep = ";"  )
+
+#tabFlows = ORI DES MODE FLOW DIST DISTOT ORILIB DESLIB
+tabflows1 <- inseeMob %>% group_by(COMMUNE,DCFLT,IPONDI,TRANS) %>% summarise(FLOW = sum(IPONDI))
+   # chopper le code d'hadri pour les modes de transports
+   # jointure avec fichier spat pour récup noms
+   # chopper les distances
+
+#poptab = insee totori totdes totintra
+pop_tab <- function(tabFlows){
+  tabflowOriOri <- tabFlows %>% filter_( "ORI == DES") %>% group_by(ORI,DES) %>%summarise(TOTINTRA = sum(FLOW))
+  tabflowOri <-  tabFlows %>% filter_( "ORI != DES") %>% group_by(ORI) %>% summarise(TOTORI = sum(FLOW))
+  tabflowDes <-  tabFlows %>% filter_( "ORI != DES") %>% group_by(DES) %>% summarise(TOTDES = sum(FLOW))
+  tabflow <- left_join(x = tabflowOriOri, y = tabflowOri, by = c("ORI","ORI"))
+  tabflow <- left_join(x = tabflow, y = tabflowDes, by = c("DES","DES"))
+  tabflow$DES <- NULL
+  colnames(tabflow) <- c("idflow", "TOTINTRA","TOTORI", "TOTDES")
+  return(tabflow)
+}
+
+popTab <- pop_tab(tabflows)
+
+#coordcom = CODGEO, X1, X2, LIBGEO
+shape <- readRDS(file = "data/communes.Rds")
+
+coord_com <- function(shape){
+  shapeSf <- st_as_sf(shape)
+  shapeSfCent <- st_centroid(shapeSf)
+  proj4string <- as.character(shape@proj4string)
+  xy <- do.call(rbind, st_geometry(shapeSfCent))
+  shapeSfCent$lon <- project(xy=xy, proj4string, inv = TRUE)[,1]
+  shapeSfCent$lat <- project(xy=xy, proj4string, inv = TRUE)[,2]
+  shapeSfCent$geometry <- NULL
+  return(shapeSfCent)
+}
+
+coordCom <- coord_com(shape)
+
+#Fonction d'aggregation de ville
+before <- c("75101", "75102", "75103","75104", "75105", 
+            "75106","75107", "75108", "75109","75110", 
+            "75111", "75112", "75113", "75114","75115", 
+            "75116", "75117","75118", "75119", "75120")
+after <- "75056"
+tabflow <- tabflows
+ori <- "ORI"
+des <- "DES"
+
+city_aggregate <- function(before, after, tabflow, ori, des){
+    dicoAgr <- tibble(OLDCODE = before, NEWCODE = after)
+    tabflow$ORIAGR <- plyr::mapvalues(x = tabflow[[ori]], from = dicoAgr$OLDCODE, to = dicoAgr$NEWCODE)
+    tabflow$DESAGR <- plyr::mapvalues(x = tabflow[[des]], from = dicoAgr$OLDCODE, to = dicoAgr$NEWCODE)
+    return(tabflow)
+}
+
+cityAggregate <-city_aggregate(before, after, tabflow, ori, des)
+
+#candidate 
+    #citiesShape$station
+    gar_comm <- read.csv("data/communes_gares_idf.csv", sep = ";")
+    gar_comm$GARES <- 1
+    
+    gar_comm$insee <- as.character(gar_comm$insee)
+    communes <- communes %>% left_join(x = communes, y = gar_comm[ , c("insee", "GARES")], by = c("CODGEO"="insee"))
+    communes[is.na(communes)] <- 0
+
+    #citiesShape$statPole
+    
+
+    #citiesShape$metro
+main_city <- function(shape,idcol,id){
+    shape$candCBD <- ifelse(communes[[idcol]]==id,1,0)
+}
+
+#poptabAgr
+
+#tabFlowAgr
+
+#listpotential
+
 
 ##### RELOCATE THE STOCKS (matrix margins) #####
 
@@ -541,8 +626,7 @@ StewartDif <- function(tabflows, selexpr = NULL, spatunits, res, span, mask){
 mobIndic <- function (tabflow, pol, idpol){
   
   #Store Origins to Origins Flow Value into a df name "tabflowOriOri"
-  tabflowOriOri <- tabflow %>% filter_( "ORI == DES")
-  colnames(tabflowOriOri) <- c("ORI", "DES","OriOriFlow")
+  tabflowOriOri <- tabflow %>% filter_( "ORI == DES") %>% group_by(ORI,DES) %>%summarise(OriOriFlow = sum(FLOW))
   
   #Store Origins Flow Value into a df name "tabflowOri"
   tabflowOri <-  tabflow %>% filter_( "ORI != DES") %>% group_by(ORI) %>% summarise(OriFlow = sum(FLOW))
@@ -555,18 +639,20 @@ mobIndic <- function (tabflow, pol, idpol){
   colnames(tabflow) <- c("idflow", "OriOriFlow","OriFlow", "DesFlow")
   
   #Building indicators
+  #auto-contention
   tabflow$Dependency <- tabflow$OriOriFlow / (tabflow$OriFlow + tabflow$OriOriFlow)
-  tabflow$SelfSuff <- tabflow$OriOriFlow / (tabflow$DesFlow + tabflow$OriOriFlow)
+  #auto-suffisance
+  tabflow$AutoSuff <- tabflow$OriOriFlow / (tabflow$DesFlow + tabflow$OriOriFlow)
+  #Mobility
   tabflow$Mobility <- (tabflow$DesFlow+tabflow$OriFlow) / (tabflow$OriFlow + tabflow$OriOriFlow)
+  #Solde relatif 
   tabflow$RelBal <- (tabflow$DesFlow-tabflow$OriFlow) / (tabflow$OriFlow + tabflow$DesFlow)
   
   pol$idpol <- pol[[idpol]]
-  polflow <- merge(x = pol,y = tabflow, by.x="idpol", by.y = "idflow")
+  shapeflow <- merge(x = pol,y = tabflow, by.x="idshp", by.y = "idflow")
   
-  return(polflow)
+  return(shapeflow)
 }
-
-
 
 # dominant flows (Nystuen-Dacey) ----
 
@@ -745,10 +831,7 @@ routing_machine <- function(road, pol,idpol){
 }
 
 
-
-
 ##### LOW LEVEL FUNCTIONS #####
-
 
 
 # Compute totals by origin or destination ----
@@ -787,6 +870,7 @@ routing_machine <- function(road, pol,idpol){
 #' 
 #' @export
 #'
+
 
 stock_flows <- function(tabflows, ref, selexpr){
   if(is.null(selexpr)){
@@ -854,8 +938,6 @@ prepare_matflows <- function(tabindiv, idspat, varori, vardes, varwgt = NULL, va
   mode(matFlows) <- "integer"
   return(matFlows)
 }
-
-
 
 # Create OD matrix (long table) ----
 
